@@ -116,6 +116,32 @@ summary(m6)
 - Os operadores de fórmula definem estrutura, não aritmética. Se você precisar que o R efetivamente some ou multiplique variáveis antes de modelá-las, deve isolar a operação matemática com a função de inibição I(). Exemplo: Y ~ I(X1 + X2).
 
 ```{r}
- <- lm(body_mass_g ~ I(flipper_length_mm/1000), data = penguins)
+m7 <- lm(body_mass_g ~ I(flipper_length_mm/1000), data = penguins)
+summary(m7)
+summary(m1)
 ```
+
+## Exercícios
+
+### Exercício 1: Argumentos e Subamostras
+
+Usando o banco 'penguins', teste a hipótese de que o comprimento do bico  (bill_length_mm) ajuda a explicar a profundidade do bico (bill_depth_mm).  Restrição: Ajuste este modelo EXCLUSIVAMENTE para pinguins da espécie "Adelie"  usando um argumento dentro da própria função lm() (sem filtrar o banco antes). Em seguida, exiba os coeficientes de forma limpa usando pacote broom e manipule a tabela para que todas o valor de p seja exibido com 2 casas decimais,
+
+### Exercício 2: Interações e Princípio da Marginalidade
+
+O banco 'Carseats' (do pacote ISLR) contém dados de vendas de cadeirinhas infantis. Hipótese: As Vendas (Sales) são explicadas pelo Preço (Price) e pelo investimento em Publicidade (Advertising). Além disso, o efeito da Publicidade nas Vendas depende da qualidade do local na prateleira (ShelveLoc). Escreva o modelo linear que testa essa hipótese, garantindo que os efeitos # principais não sejam omitidos. 
+
+### Exercício 3: Transformação na Fórmula
+ 
+No banco 'Carseats', a variável Sales indica vendas em milhares (ex: 8.5 = 8.500 cadeirinhas). Ajuste um modelo simples prevendo as vendas apenas pelo Preço (Price). Porém, use um operador matemático dentro da fórmula da regressão para que o coeficiente resultante reflita o impacto no número absoluto de vendas (unidades), e não em milhares.
+
+### Exercício 4: Parametrização sem Intercepto e Validação
+
+Usando o banco 'penguins', ajuste um modelo linear para estimar a massa corporal (`body_mass_g`) em função da ilha (island), mas remova o intercepto da fórmula. Em seguida, usando as funções de agrupamento do pacote dplyr (`group_by` e summarise), calcule a média matemática de peso para cada ilha. Compare os coeficientes do modelo com as médias calculadas. O objetivo é provar empiricamente que, sem o intercepto, os coeficientes representam as médias absolutas de cada categoria.
+
+### Exercício 5: Termos Polinomiais (Quadráticos) na Fórmula
+
+No banco 'mtcars', existe a hipótese de que a relação entre a potência do motor (hp) e o consumo de combustível (mpg) não é uma linha reta, mas sim uma curva (o impacto da potência no consumo muda de intensidade em carros muito potentes). Escreva um modelo que preveja 'mpg' usando 'hp' no seu formato linear e adicione um termo quadrático de 'hp' (hp elevado ao quadrado). Use a função de inibição adequada dentro da fórmula para criar esse termo elevado a 2 diretamente no lm(), sem modificar o banco de dados.
+
+
 

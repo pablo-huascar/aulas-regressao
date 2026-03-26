@@ -1,0 +1,34 @@
+---
+title: "Exercícios"
+format: html
+---
+
+## Exercício 1
+
+```{r}
+ex1 <- lm(bill_depth_mm ~ bill_length_mm, data = penguins, subset = species == "Adelie")
+
+ex1 |> 
+    tidy() |> 
+    mutate(
+        p.value = round(p.value, 3)
+    )
+```
+
+## Exercício 2
+
+O uso do `*` garante a entrada de Advertising, ShelveLoc e da interação Advertising:ShelveLoc
+
+```{r}
+ex2 <- lm(Sales ~ Price + Advertising * ShelveLoc, data = Carseats)
+summary(ex2)
+```
+
+## Exercício 3
+
+O uso de I() permite multiplicar por 1000 antes de ajustar o modelo
+
+```{r}
+ex3 <- lm(I(Sales * 1000) ~ Price, data = Carseats)
+summary(ex3)
+```
