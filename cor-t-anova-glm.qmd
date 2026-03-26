@@ -17,10 +17,6 @@ conflicts_prefer(dplyr::filter)
 
 ## Correlação de Pearson
 
-- A correlação de Pearson e a regressão linear simples com um único preditor contínuo são, no fundo, o mesmo modelo estatístico.
-- A correlação mede a direção e a força da associação em uma escala universal (de -1 a 1). 
-- A regressão quantifica a magnitude do efeito na escala original das variáveis.
-
 ```{r}
 cor_teste <- cor.test(penguins$flipper_length_mm, penguins$body_mass_g)
 cor_teste
@@ -71,5 +67,95 @@ O coeficiente não padronizado ($b$) descreve a inclinação da reta na unidade 
 ## Teste T
 
 ```{r}
+penguins |> 
+    drop_na(sex) |> 
+    summarise(
+        m = mean(body_mass_g, na.rm = T),
+        .by = sex
+    )
+```
 
+```{r}
+teste_t <- t.test(body_mass_g ~ sex, penguins, var.equal = T)
+teste_t
+```
+
+```{r}
+m_teste_t <- lm(body_mass_g ~ sex, penguins)
+summary(m_teste_t)
+
+m_teste_t |> 
+    tidy(conf.int = T)
+```
+
+- A estatística de teste, os graus de liberdade e o intervalo de confiança são idênticos 
+
+### Interpretação:
+
+Intercepto ($\beta_0$): É a média exata da categoria de referência (neste caso, "female", pois o R usa ordem alfabética e atribui o valor 0).
+Estimativa ($\beta_1$): É a diferença entre a média da categoria analisada ("male") e a categoria de referência.
+Hipótese Nula ($H_0$): A diferença entre as médias é igual a zero ($\beta_1 = 0$).
+
+### Como o R lida com as variáveis categóricas
+
+```{r}
+contrasts(penguins$sex)
+```
+
+- A categoria de referência é escolhida por ordem alfabética
+
+```{r}
+penguins_df <- penguins |> 
+    drop_na(sex) |> 
+    mutate(
+        male = case_when(sex == "male" ~ 1,
+        .default = 0),
+        female = case_when(sex == "female" ~ 1,
+        .default = 0)
+    ) |> 
+        select(body_mass_g, sex, male, female)
+```
+
+
+```{r}
+lm(body_mass_g ~ sex, penguins_df) |> 
+    summary()
+
+lm(body_mass_g ~ male, penguins_df) |> 
+    summary()
+```
+
+
+```{r}
+lm(body_mass_g ~ female, penguins_df) |> 
+    summary()
+```
+
+#### Como mudar a categoria de referência?
+
+```{r}
+penguins_df_r <- penguins_df |> 
+    mutate(
+        sex = fct_relevel(sex, "male")
+    )
+```
+
+
+```{r}
+lm(body_mass_g ~ sex, penguins_df_r) |> 
+    summary()
+
+lm(body_mass_g ~ female, penguins_df) |> 
+    summary()
+```
+
+## Anova
+
+```{r}
+m_anova <- lm(body_mass_g ~ species, penguins)  
+teste <- Anova(m_anova)
+aov(body_mass_g ~ species, penguins) |> 
+    TukeyHSD()
+
+    
 ```
