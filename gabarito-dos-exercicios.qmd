@@ -3,19 +3,36 @@ title: "Exercícios"
 format: html
 ---
 
-## Exercício 1
-
 ```{r}
-ex1 <- lm(bill_depth_mm ~ bill_length_mm, data = penguins, subset = species == "Adelie")
-
-ex1 |> 
-    tidy() |> 
-    mutate(
-        p.value = round(p.value, 3)
-    )
+library(conflicted)
+library(tidyverse)
+library(broom)
+library(palmerpenguins)
+library(car)
+library(ISLR)
+conflicts_prefer(palmerpenguins::penguins)
+conflicts_prefer(dplyr::filter)
 ```
 
-## Exercício 2
+## Argumentos e sintaxe para regressão: a função `lm()`
+
+### Exercício 1
+
+```{r}
+ex1 <- lm(
+  bill_depth_mm ~ bill_length_mm,
+  data = penguins,
+  subset = species == "Adelie"
+)
+
+ex1 |>
+  tidy() |>
+  mutate(
+    p.value = round(p.value, 3)
+  )
+```
+
+### Exercício 2
 
 O uso do `*` garante a entrada de Advertising, ShelveLoc e da interação Advertising:ShelveLoc
 
@@ -24,7 +41,7 @@ ex2 <- lm(Sales ~ Price + Advertising * ShelveLoc, data = Carseats)
 summary(ex2)
 ```
 
-## Exercício 3
+### Exercício 3
 
 O uso de I() permite multiplicar por 1000 antes de ajustar o modelo
 
@@ -32,3 +49,38 @@ O uso de I() permite multiplicar por 1000 antes de ajustar o modelo
 ex3 <- lm(I(Sales * 1000) ~ Price, data = Carseats)
 summary(ex3)
 ```
+
+### Exercício 4
+
+A remoção do intercepto com - 1 (ou + 0) altera a matriz de contrastes. O modelo não testa mais a diferença entre as ilhas em relação a uma referência, mas estima a média de cada uma. O summarise confirma que os coeficientes são exatos.
+
+```{r}
+ex4 <- lm(body_mass_g ~ island - 1, data = penguins)
+
+ex4 |>
+  tidy()
+
+# Validação com dplyr
+penguins |>
+  summarise(
+    media_peso = mean(body_mass_g, na.rm = T),
+    .by = island
+  )
+```
+
+## Exrecício 5
+
+Para elevar uma variável ao quadrado dentro da fórmula, o operador ^ sozinho não funciona matematicamente, pois ele tem um significado especial de expansão de interações na sintaxe do R. É obrigatório isolar a operação matemática dentro da função I().
+
+
+```{r}
+ex5 <- lm(mpg ~ hp + I(hp^2), data = mtcars)
+
+ex5 |>
+  tidy()
+```
+
+
+
+
+

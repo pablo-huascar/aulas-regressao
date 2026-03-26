@@ -1,0 +1,295 @@
+---
+title: "Untitled"
+format: html
+---
+
+---
+title: "Untitled"
+format: html
+---
+
+```{r}
+library(tidyverse)
+library(gt)
+library(broom)
+theme_set(theme_minimal())
+```
+
+```{r}
+dados <- tribble(
+  ~refeicao , ~conta , ~gorjeta ,
+          1 ,     34 ,        5 ,
+          2 ,    108 ,       17 ,
+          3 ,     64 ,       11 ,
+          4 ,     88 ,        8 ,
+          5 ,     99 ,       14 ,
+          6 ,     51 ,        5
+)
+```
+
+```{r}
+dados |>
+  gt()
+```
+
+## Método dos Mínimos Quadrados
+
+```{r}
+dados |>
+  ggplot(aes(conta, gorjeta)) +
+  geom_point() +
+  geom_smooth(
+    method = "lm",
+    se = F,
+    color = "red"
+  )
+```
+
+y = a + bx
+
+### SST: Total Sum of Squares (Soma Total de Quadrados)
+
+```{r}
+dados |>
+  ggplot(aes(refeicao, gorjeta)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = mean(dados$gorjeta), color = "red")
+```
+
+$$
+SST = \sum_{i=1}^{n} (y_i - \bar{y})^2
+$$
+
+```{r}
+sst <- dados |>
+  mutate(
+    resid_sst = gorjeta - mean(gorjeta)
+  ) |>
+  summarise(
+    sst = sum(resid_sst^2)
+  ) |>
+  pull()
+```
+
+### Slope (coeficiente angular)
+
+$$
+b_1 =
+\frac{\sum_{i=1}^{n}(x_i - \bar{x})(y_i - \bar{y})}
+{\sum_{i=1}^{n}(x_i - \bar{x})^2}
+$$
+
+```{r}
+slope <- dados |>
+  mutate(
+    num = (conta - mean(conta)) * (gorjeta - mean(gorjeta)),
+    dem = (conta - mean(conta))^2
+  ) |>
+  summarise(
+    num = sum(num),
+    dem = sum(dem)
+  ) |>
+  mutate(
+    slope = num / dem
+  ) |>
+  pull()
+```
+
+### Intercept (intercepto)
+
+$$
+b_0 = \bar{y} - b_1 \bar{x}
+$$
+
+
+```{r}
+intercept <- mean(dados$gorjeta) - slope * (mean(dados$conta))
+```
+
+y = -0.82 + 0.146x
+gorjeta = -0.82 + 0.146*conta
+
+### Notação da regressão no R
+
+```{r}
+reg <- lm(gorjeta ~ conta, dados)
+```
+
+```{r}
+summary(reg)
+```
+
+```{r}
+reg |>
+  tidy()
+```
+
+### SSE: Error Sum of Squares (Soma de Quadrados do Erro)
+
+$$
+SSE = \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
+$$
+
+```{r}
+dados_aug <- dados |>
+  mutate(
+    pred = intercept + slope * conta,
+    resid = gorjeta - pred
+  )
+```
+
+```{r}
+reg |> 
+  augment()
+```
+
+```{r}
+sse <- dados_aug |>
+  summarise(
+    sse = sum(resid^2)
+  ) |>
+  pull()
+```
+
+## SSR: Regression Sum of Squares (Soma de Quadrados da Regressão)
+
+$$
+SST = SSR + SSE
+SSR = SST - SSE
+$$
+
+```{r}
+ssr <- sst - sse
+```
+
+$$
+SSR = \sum_{i=1}^{n} (\hat{y}_i - \bar{y})^2
+$$
+
+```{r}
+dados_aug |> 
+  mutate(
+    ssr = pred - mean(gorjeta),
+    ssr_2 = ssr^2 
+  ) |> 
+    summarise(
+      ssr = sum(ssr_2)
+    )
+```
+
+## Coeficiente de Determinação R^2
+
+O quanto a equação de regressão está ajustada aos dados?
+
+$$
+r^2 = \frac{SSR}{SST}
+$$
+
+```{r}
+ssr/sst
+```
+
+```{r}
+dados_z <- dados |> 
+  mutate(
+    conta_z = scale(conta) |> as.numeric(),
+    gorjeta_z = scale(gorjeta) |> as.numeric()
+  )
+
+lm(gorjeta_z ~ conta_z, dados_z) |> 
+  tidy() |> 
+  mutate(
+    estimate = round(estimate, 3)
+  )
+```
+
+## MSE: Mean Square Error (Quadrado Médio do Erro)
+
+O MSE é uma estimativa de quanto os pontos de dados estão espalhados em relação à reta de regressão.
+
+O MSE é definido como:
+
+$$
+MSE = s^2 = \frac{SSE}{n - 2}
+$$
+
+onde os n - 2 graus de liberdade surgem porque estamos estimando dois parâmetros no modelo de regressão linear simples: o intercepto b0 e o coeficiente angular (slope) b1.
+
+```{r}
+mse <- sse/(nrow(dados) - 2)
+```
+
+## RMSE
+
+$$
+RMSE = \sqrt{MSE}
+$$
+
+É a distância média que uma observação se encontra da linha de regressão, nas unidades da variável dependente.
+
+```{r}
+sqrt(mse)
+```
+
+> Um modelo com bom ajuste tende a apresentar 𝑅^2 relativamente alto e RMSE relativamente baixo, mas esses indicadores não são suficientes para avaliar a adequação do modelo.
+
+## MSR: Mean Square Regression (Quadrado Médio da Regressão)
+
+$$
+MSR = \frac{SSR}{1}
+$$
+
+```{r}
+msr <- ssr
+```
+
+
+## F = F-statistic (Estatística F do teste de adequação do modelo)
+
+$$
+F = \frac{MSR}{MSE}
+$$
+
+```{r}
+f <- msr/mse
+```
+
+  $$
+  F = \frac{SSR/1}{SSE/(n-2)}
+  $$
+
+
+```{r}
+p <- pf(11.96016, df1 = 1, df2 = (nrow(dados) - 2), lower.tail = FALSE)
+```
+
+$$
+SE(b_1) =
+\sqrt{
+\frac{MSE}
+{\sum_{i=1}^{n}(x_i - \bar{x})^2}
+}
+$$
+
+## SE
+
+```{r}
+den_se <- sum((dados$conta - mean(dados$conta))^2)
+
+se_b1 <- sqrt(mse/den_se)
+```
+
+## t (n - 2 graus de liberdade)
+
+$$
+t = \frac{b_1}{SE(b_1)}
+$$
+
+```{r}
+t <- slope/se_b1
+```
+
+
+```{r}
+p <- 2 * pt(-abs(t), df = (nrow(dados) - 2))
+```

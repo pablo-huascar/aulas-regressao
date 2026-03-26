@@ -1,0 +1,75 @@
+---
+title: "Untitled"
+format: html
+---
+
+```{r}
+library(conflicted)
+library(tidyverse)
+library(broom)
+library(palmerpenguins)
+library(car)
+library(ISLR)
+library(lm.beta)
+conflicts_prefer(palmerpenguins::penguins)
+conflicts_prefer(dplyr::filter)
+```
+
+## Correlação de Pearson
+
+- A correlação de Pearson e a regressão linear simples com um único preditor contínuo são, no fundo, o mesmo modelo estatístico.
+- A correlação mede a direção e a força da associação em uma escala universal (de -1 a 1). 
+- A regressão quantifica a magnitude do efeito na escala original das variáveis.
+
+```{r}
+cor_teste <- cor.test(penguins$flipper_length_mm, penguins$body_mass_g)
+cor_teste
+cor_teste$estimate^2
+```
+
+```{r}
+m_corr <- lm(body_mass_g ~ flipper_length_mm, penguins)
+summary(m_corr)
+lm.beta(m_corr)
+```
+
+Observem que:
+
+- A estatística de teste e os graus de liberdade são idênticos
+- O valor de $R^2$ no sumário da regressão é o quadrado da correlação
+- A regressão com variáveis padronizadas é a correlação de Pearson.
+
+## Correlação padronizada manualmente
+
+```{r}
+penguins_z <- penguins |>
+  mutate(
+    z_flipper = scale(flipper_length_mm) |> as.numeric(),
+    z_bmg = scale(body_mass_g) |> as.numeric(),
+    .keep = "none"
+  )
+penguins_z
+```
+
+```{r}
+lm(z_bmg ~ z_flipper, penguins_z) |>
+  tidy() |>
+  mutate(across(where(is.double), \(x) {
+    round(x, 2)
+  }))
+```
+
+### Interpretação
+
+```{r}
+m_corr |> 
+    tidy()
+```
+
+O coeficiente não padronizado ($b$) descreve a inclinação da reta na unidade medida: para o caso dos pinguins, o $b = 49.68$ significa que o aumento de 1 milímetro na nadadeira está associado a um aumento médio de 49.68 gramas no peso.
+
+## Teste T
+
+```{r}
+
+```
