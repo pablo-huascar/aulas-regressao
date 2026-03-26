@@ -1,0 +1,121 @@
+---
+title: "Untitled"
+format: html
+---
+
+```{r}
+library(conflicted)
+library(tidyverse)
+library(broom)
+library(palmerpenguins)
+library(car)
+library(ISLR)
+conflicts_prefer(palmerpenguins::penguins)
+conflicts_prefer(dplyr::filter)
+```
+
+## Principais argumentos da função `lm()`
+
+- formula: É o primeiro argumento. Recebe a estrutura simbólica do modelo que veremos a seguir (ex: Y ~ X1 + X2).
+
+- data: Indica o data frame ou tibble que contém as colunas citadas na fórmula. É uma boa prática sempre declarar este argumento para garantir que o R não puxe variáveis soltas do seu ambiente global.
+
+```{r}
+lm(formula = mpg ~ wt, data = mtcars)
+lm(formula = mtcars$mpg ~ mtcars$wt)
+```
+
+- subset: Permite ajustar o modelo em uma subamostra dos dados diretamente dentro da função, sem precisar criar um banco de dados filtrado antes. Recebe uma condição lógica (ex: sex == "female").
+
+```{r}
+lm(formula = mpg ~ wt, data = mtcars)
+lm(formula = mpg ~ wt, data = mtcars, subset = am == 1)
+
+am1 <- mtcars |> 
+  filter(am == 1)
+
+lm(formula = mpg ~ wt, data = am1)
+```
+
+- Use as funções `summary()` (base R),  `tidy()` (`broom::tidy()`) ou `broom::glance()` para ver informações mais detalhadas sobre o modelo
+
+```{r}
+m0 <- lm(formula = mpg ~ wt, data = mtcars)
+summary(m0)
+```
+
+```{r}
+m0 |> 
+  tidy()
+```
+
+```{r}
+m0 |> 
+  tidy() |> 
+  mutate(
+    across(where(is.double), \(x) 
+  round(x, 3))
+  ) |>
+  rename(
+    b = estimate,
+    se = std.error,
+    t = statistic
+  ) 
+```
+
+```{r}
+m0 |> 
+  glance()
+```
+
+## Sintaxe da Regressão na função `lm()`
+
+-   \~ (til): Separa a variável dependente ($Y$, à esquerda) dos preditores ($X$, à direita). Lê-se "é modelado em função de".
+
+```{r}
+m1 <- lm(body_mass_g ~ flipper_length_mm, data = penguins)
+summary(m1) 
+```
+
+- \+ (mais): Inclui variáveis de forma aditiva. Não soma os valores das colunas, mas "adiciona preditores" ao modelo. Exemplo: Y \~ X1 + X2.
+
+```{r}
+m2 <- lm(
+  body_mass_g ~ flipper_length_mm +
+    species,
+  data = penguins
+) 
+
+summary(m2)
+```
+
+-   : (dois pontos): Denota estritamente o termo de interação entre duas variáveis (o produto cruzado). Exemplo: Y \~ X1:X2.
+
+```{r}
+m3 <- lm(body_mass_g ~ flipper_length_mm:species, data = penguins)
+summary(m3)
+
+```
+
+-   \* (asterisco): É o atalho mais importante para interações. A notação Y \~ X1 \* X2 diz ao R para expandir o modelo para Y \~ X1 + X2 + X1:X2. Isso garante o princípio da marginalidade (incluir os efeitos principais ao testar interações).
+
+```{r}
+m4 <- lm(body_mass_g ~ flipper_length_mm*species, data = penguins)
+summary(m4)
+```
+
+-   1 ou + 0: O R sempre inclui o intercepto ($\beta_0$) implicitamente. Esses operadores removem o intercepto, forçando a reta a passar pela origem (0,0).
+
+```{r}
+m5 <- lm(body_mass_g ~ species, data = penguins)
+summary(m5)
+m6 <- lm(body_mass_g ~ species - 1, data = penguins)
+summary(m6)
+```
+
+- Os operadores de fórmula definem estrutura, não aritmética. Se você precisar que o R efetivamente some ou multiplique variáveis antes de modelá-las, deve isolar a operação matemática com a função de inibição I(). Exemplo: Y ~ I(X1 + X2).
+
+```{r}
+ <- lm(body_mass_g ~ I(flipper_length_mm/1000), data = penguins)
+```
+
