@@ -11,6 +11,7 @@ library(palmerpenguins)
 library(car)
 library(ISLR)
 library(lm.beta)
+library(emmeans)
 conflicts_prefer(palmerpenguins::penguins)
 conflicts_prefer(dplyr::filter)
 ```
@@ -21,6 +22,13 @@ conflicts_prefer(dplyr::filter)
 cor_teste <- cor.test(penguins$flipper_length_mm, penguins$body_mass_g)
 cor_teste
 cor_teste$estimate^2
+```
+
+```{r}
+penguins |> 
+    ggplot(aes(flipper_length_mm, body_mass_g)) +
+    geom_point() +
+    geom_smooth(method = "lm", se = F)
 ```
 
 ```{r}
@@ -61,6 +69,9 @@ lm(z_bmg ~ z_flipper, penguins_z) |>
 m_corr |> 
     tidy()
 ```
+
+y = a + bx
+bm = -5781 + 49.7*fl
 
 O coeficiente não padronizado ($b$) descreve a inclinação da reta na unidade medida: para o caso dos pinguins, o $b = 49.68$ significa que o aumento de 1 milímetro na nadadeira está associado a um aumento médio de 49.68 gramas no peso.
 
@@ -149,13 +160,100 @@ lm(body_mass_g ~ female, penguins_df) |>
     summary()
 ```
 
+```{r}
+lm(body_mass_g ~ sex + flipper_length_mm, penguins) |> 
+    summary()
+```
+
+y = a + bx1 + bx2
+
 ## Anova
+
+
+```{r}
+penguins |> 
+    summarise(
+        m = mean(body_mass_g, na.rm = T),
+        .by = species
+    )
+```
+
 
 ```{r}
 m_anova <- lm(body_mass_g ~ species, penguins)  
-teste <- Anova(m_anova)
-aov(body_mass_g ~ species, penguins) |> 
-    TukeyHSD()
-
-    
+summary(m_anova)
+Anova(m_anova)
+posthoc <- emmeans(m_anova, ~species)
+posthoc
+pairs(posthoc, adjust = "tukey")
 ```
+
+```{r}
+anova_teste <- aov(body_mass_g ~ species, penguins)
+summary(anova_teste)
+TukeyHSD(anova_teste)
+```
+
+```{r}
+contrasts(penguins$species)
+```
+
+
+```{r}
+penguins_anova <- penguins |> 
+    mutate(
+        adelie = case_when(species == "Adelie" ~ 1,
+        .default = 0),
+        gentoo = case_when(species == "Gentoo" ~ 1,
+        .default = 0),
+        chinstrap = case_when(species == "Chinstrap" ~ 1,
+        .default = 0)
+    ) |> 
+    select(body_mass_g, species, adelie:chinstrap)
+```
+
+
+```{r}
+set.seed(1)
+penguins_anova |> 
+    slice_sample(n = 10) |> 
+    slice(1:3)
+```
+
+
+```{r}
+lm(body_mass_g ~ species, penguins) |>
+    summary() 
+```
+
+
+```{r}
+lm(body_mass_g ~ adelie + chinstrap, penguins_anova) |> 
+    summary()
+```
+
+
+## Exercício 1: Regressão Simples e Correlação (Base mtcars)
+
+No banco de dados mtcars, existe a hipótese de que a potência do motor em cavalos (hp) impacta negativamente o rendimento de combustível em milhas por galão (mpg).
+
+Ajuste um modelo linear prevendo mpg a partir de hp.
+Interprete o coeficiente não padronizado de hp em termos práticos (unidades originais).
+Calcule o coeficiente de correlação de Pearson entre as duas variáveis. Mostre matematicamente (elevando ao quadrado) que a correlação explica a mesma proporção de variância ($R^2$) que o modelo linear.
+
+## Exercício 2: O Teste t como Regressão (Base ISLR::Carseats)
+
+O banco Carseats (pacote ISLR) contém dados de vendas de cadeirinhas de bebê em 400 lojas. A variável Urban indica se a loja está em uma área urbana (Yes) ou rural (No). A variável Sales indica as vendas em milhares de unidades.
+
+Ajuste um modelo linear prevendo Sales a partir de Urban.
+Sem usar a função mean(), responda olhando apenas para o summary() ou tidy() do modelo: qual é a média exata de vendas nas lojas rurais? E nas lojas urbanas?
+A diferença de vendas entre lojas urbanas e rurais é estatisticamente significativa? Justifique com base na hipótese nula do coeficiente.
+
+
+## Exercício 3: ANOVA de uma via e Contrastes (Base iris)
+
+O banco nativo iris contém medidas morfológicas de três espécies de flores (setosa, versicolor, virginica). Queremos avaliar se o comprimento da pétala (Petal.Length) difere entre as espécies.
+
+Ajuste o modelo linear correspondente.
+Identifique qual espécie foi definida como categoria de referência pelo R e indique a sua média a partir do intercepto.
+Usando o pacote emmeans, calcule as médias marginais estimadas para as três espécies e realize as comparações múltiplas (post-hoc) com correção de Tukey. Qual par de espécies apresenta a maior diferença absoluta no comprimento das pétalas?

@@ -10,6 +10,7 @@ library(broom)
 library(palmerpenguins)
 library(car)
 library(ISLR)
+library(dslabs)
 conflicts_prefer(palmerpenguins::penguins)
 conflicts_prefer(dplyr::filter)
 ```
@@ -21,7 +22,7 @@ conflicts_prefer(dplyr::filter)
 - data: Indica o data frame ou tibble que contém as colunas citadas na fórmula. É uma boa prática sempre declarar este argumento para garantir que o R não puxe variáveis soltas do seu ambiente global.
 
 ```{r}
-lm(formula = mpg ~ wt, data = mtcars)
+teste <- lm(formula = mpg ~ wt, data = mtcars)
 lm(formula = mtcars$mpg ~ mtcars$wt)
 ```
 
@@ -81,7 +82,7 @@ summary(m1)
 
 ```{r}
 m2 <- lm(
-  body_mass_g ~ flipper_length_mm +
+  body_mass_g ~ flipper_length_mm + 
     species,
   data = penguins
 ) 
@@ -95,6 +96,13 @@ summary(m2)
 m3 <- lm(body_mass_g ~ flipper_length_mm:species, data = penguins)
 summary(m3)
 
+```
+
+```{r}
+penguins |> 
+  ggplot(aes(flipper_length_mm, body_mass_g, color = species)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F)
 ```
 
 -   \* (asterisco): É o atalho mais importante para interações. A notação Y \~ X1 \* X2 diz ao R para expandir o modelo para Y \~ X1 + X2 + X1:X2. Isso garante o princípio da marginalidade (incluir os efeitos principais ao testar interações).
@@ -116,7 +124,7 @@ summary(m6)
 - Os operadores de fórmula definem estrutura, não aritmética. Se você precisar que o R efetivamente some ou multiplique variáveis antes de modelá-las, deve isolar a operação matemática com a função de inibição I(). Exemplo: Y ~ I(X1 + X2).
 
 ```{r}
-m7 <- lm(body_mass_g ~ I(flipper_length_mm/1000), data = penguins)
+m7 <- lm(body_mass_g ~ (flipper_length_mm/1000), data = penguins)
 summary(m7)
 summary(m1)
 ```
@@ -127,13 +135,36 @@ summary(m1)
 
 Usando o banco 'penguins', teste a hipótese de que o comprimento do bico  (bill_length_mm) ajuda a explicar a profundidade do bico (bill_depth_mm).  Restrição: Ajuste este modelo EXCLUSIVAMENTE para pinguins da espécie "Adelie"  usando um argumento dentro da própria função lm() (sem filtrar o banco antes). Em seguida, exiba os coeficientes de forma limpa usando pacote broom e manipule a tabela para que todas o valor de p seja exibido com 2 casas decimais,
 
+```{r}
+lm(
+  formula = bill_depth_mm ~ bill_length_mm, 
+  data = penguins,
+  subset = species == "Adelie"
+) |> 
+  tidy() |> 
+  mutate(
+    across(c(std.error, p.value), \(x) 
+    x = round(x, 2))
+  )
+```
+
 ### Exercício 2: Interações e Princípio da Marginalidade
 
 O banco 'Carseats' (do pacote ISLR) contém dados de vendas de cadeirinhas infantis. Hipótese: As Vendas (Sales) são explicadas pelo Preço (Price) e pelo investimento em Publicidade (Advertising). Além disso, o efeito da Publicidade nas Vendas depende da qualidade do local na prateleira (ShelveLoc). Escreva o modelo linear que testa essa hipótese, garantindo que os efeitos # principais não sejam omitidos. 
 
+```{r}
+lm(formula = Sales ~ Price + Advertising*ShelveLoc, data = Carseats) |> 
+  summary()
+```
+
 ### Exercício 3: Transformação na Fórmula
  
 No banco 'Carseats', a variável Sales indica vendas em milhares (ex: 8.5 = 8.500 cadeirinhas). Ajuste um modelo simples prevendo as vendas apenas pelo Preço (Price). Porém, use um operador matemático dentro da fórmula da regressão para que o coeficiente resultante reflita o impacto no número absoluto de vendas (unidades), e não em milhares.
+
+```{r}
+lm(formula = I(Sales*1000) ~ Price, data = Carseats) |> 
+  summary()
+```
 
 ### Exercício 4: Parametrização sem Intercepto e Validação
 
