@@ -169,7 +169,6 @@ y = a + bx1 + bx2
 
 ## Anova
 
-
 ```{r}
 penguins |> 
     summarise(
@@ -237,23 +236,24 @@ lm(body_mass_g ~ adelie + chinstrap, penguins_anova) |>
 
 No banco de dados mtcars, existe a hipótese de que a potência do motor em cavalos (hp) impacta negativamente o rendimento de combustível em milhas por galão (mpg).
 
-Ajuste um modelo linear prevendo mpg a partir de hp.
-Interprete o coeficiente não padronizado de hp em termos práticos (unidades originais).
-Calcule o coeficiente de correlação de Pearson entre as duas variáveis. Mostre matematicamente (elevando ao quadrado) que a correlação explica a mesma proporção de variância ($R^2$) que o modelo linear.
+-  Ajuste um modelo linear prevendo mpg a partir de hp.
+- Interprete o coeficiente não padronizado de hp em termos práticos (unidades originais).
+- Calcule o coeficiente de correlação de Pearson entre as duas variáveis. Mostre matematicamente (elevando ao quadrado) que a correlação explica a mesma proporção de variância ($R^2$) que o modelo linear.
 
 ## Exercício 2: O Teste t como Regressão (Base ISLR::Carseats)
 
 O banco Carseats (pacote ISLR) contém dados de vendas de cadeirinhas de bebê em 400 lojas. A variável Urban indica se a loja está em uma área urbana (Yes) ou rural (No). A variável Sales indica as vendas em milhares de unidades.
 
-Ajuste um modelo linear prevendo Sales a partir de Urban.
-Sem usar a função mean(), responda olhando apenas para o summary() ou tidy() do modelo: qual é a média exata de vendas nas lojas rurais? E nas lojas urbanas?
-A diferença de vendas entre lojas urbanas e rurais é estatisticamente significativa? Justifique com base na hipótese nula do coeficiente.
+- Ajuste um modelo linear prevendo Sales a partir de Urban.
+- Sem usar a função mean(), responda olhando apenas para o summary() ou tidy() do modelo: qual é a média exata de vendas nas lojas rurais? E nas lojas urbanas?
+- A diferença de vendas entre lojas urbanas e rurais é estatisticamente significativa? Justifique com base na hipótese nula do coeficiente.
 
 
 ## Exercício 3: ANOVA de uma via e Contrastes (Base iris)
 
 O banco nativo iris contém medidas morfológicas de três espécies de flores (setosa, versicolor, virginica). Queremos avaliar se o comprimento da pétala (Petal.Length) difere entre as espécies.
 
-Ajuste o modelo linear correspondente.
-Identifique qual espécie foi definida como categoria de referência pelo R e indique a sua média a partir do intercepto.
-Usando o pacote emmeans, calcule as médias marginais estimadas para as três espécies e realize as comparações múltiplas (post-hoc) com correção de Tukey. Qual par de espécies apresenta a maior diferença absoluta no comprimento das pétalas?
+- Ajuste o modelo linear correspondente.
+- Identifique qual espécie foi definida como categoria de referência pelo R e indique a sua média a partir do intercepto.
+- Usando o pacote emmeans, calcule as médias marginais estimadas para as três espécies e realize as comparações múltiplas (post-hoc) com correção de Tukey. 
+- Qual par de espécies apresenta a maior diferença absoluta no comprimento das pétalas?
