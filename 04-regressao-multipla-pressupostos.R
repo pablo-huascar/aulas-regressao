@@ -42,6 +42,9 @@ p_auto_linha_de_regressao
 modelo_auto <- lm(mpg ~ horsepower, auto)
 summary(modelo_auto)
 
+y = a + bx
+mpg = 39.935861 + -0.157845*130
+
 ##### Análise dos resíduos
 
 resid_auto_linear <- modelo_auto |>
@@ -66,7 +69,6 @@ resid_auto_linear
 harvtest(modelo_auto)
 raintest(modelo_auto)
 resettest(modelo_auto)
-
 
 #### Modelo quadrático
 
@@ -176,5 +178,9 @@ m_rating <- lm(Balance ~ Rating, data = Credit)
 summary(m_rating)
 m_multi <- lm(Balance ~ Limit + Rating, data = Credit)
 summary(m_multi)
+
+performance::check_collinearity(m_multi)
+
+y = a + bx1 + cx2
 
 cor(credit$Limit, credit$Rating)

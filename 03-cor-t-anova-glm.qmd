@@ -231,6 +231,8 @@ lm(body_mass_g ~ adelie + chinstrap, penguins_anova) |>
     summary()
 ```
 
+y = a + bx1 + bx2
+peso = 3700.66 + 32.43*Chinstrap + 1375.35*Gentoo
 
 ## Exercício 1: Regressão Simples e Correlação (Base mtcars)
 
@@ -239,6 +241,8 @@ No banco de dados mtcars, existe a hipótese de que a potência do motor em cava
 -  Ajuste um modelo linear prevendo mpg a partir de hp.
 - Interprete o coeficiente não padronizado de hp em termos práticos (unidades originais).
 - Calcule o coeficiente de correlação de Pearson entre as duas variáveis. Mostre matematicamente (elevando ao quadrado) que a correlação explica a mesma proporção de variância ($R^2$) que o modelo linear.
+
+
 
 ## Exercício 2: O Teste t como Regressão (Base ISLR::Carseats)
 
