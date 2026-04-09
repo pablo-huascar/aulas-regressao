@@ -1,0 +1,16 @@
+---
+title: "Untitled"
+format: html
+---
+
+
+```{r}
+library(tidyverse)
+library(openintro)
+```
+
+
+```{r}
+possum |> 
+    ggplot(aes  )
+```
