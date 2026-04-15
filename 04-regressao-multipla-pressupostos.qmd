@@ -1,0 +1,156 @@
+---
+title: "Untitled"
+format: html
+---
+
+## Pacotes
+
+```{r}
+library(tidyverse)
+library(openintro)
+library(broom)
+library(lmtest)
+library(ISLR)
+library(patchwork)
+library(performance)
+library(olsrr)
+library(car)
+library(palmerpenguins)
+theme_set(theme_minimal())
+```
+
+## Dados
+
+```{r}
+auto <- Auto |>
+  as_tibble()
+```
+
+## Linearidade
+
+```{r}
+p_auto <- auto |>
+  ggplot(aes(horsepower, mpg)) +
+  geom_point() +
+  theme_minimal()
+
+p_auto
+
+p_auto_linha_de_regressao <- p_auto +
+  geom_smooth(
+    color = "red",
+    method = "lm",
+    se = F
+  )
+
+p_auto_linha_de_regressao
+
+
+p_auto_loess <- p_auto +
+  geom_smooth(
+    color = "red",
+    method = "loess",
+    se = F
+  )
+
+ p_auto_loess
+```
+
+### Modelo
+
+```{r}
+modelo_auto <- lm(mpg ~ horsepower, auto)
+summary(modelo_auto)
+```
+
+- y = a + bx
+- mpg = 39.935861 + -0.157845*horsepower
+
+#### Análise dos resíduos do modelo mpg-horsepower
+
+```{r}
+modelo_auto_augment <- modelo_auto |>
+  augment() 
+  
+resid_auto_linear <- modelo_auto_augment |> 
+  ggplot(aes(.fitted, .resid)) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(
+    color = "red",
+    se = F
+    ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed",
+    color = "blue"
+  ) +
+  theme_minimal()
+
+resid_auto_linear
+```
+
+#### Testes para avaliar a lienaridade
+
+H0: a relação é linear
+H1: a relação não é linear
+
+```{r}
+harvtest(modelo_auto)
+raintest(modelo_auto)
+resettest(modelo_auto)
+```
+
+#### Modelo quadrático
+
+```{r}
+modelo_auto <- lm(mpg ~ horsepower, auto)
+summary(modelo_auto)
+```
+
+```{r}
+modelo_auto_quadratico <- lm(mpg ~ horsepower + I(horsepower^2), auto)
+summary(modelo_auto_quadratico)
+```
+
+R^2 aumentou
+Erro residual diminuiu
+
+- O que muda ao incluir o Termo Quadrático (X^2)?
+    - A regressão continua sendo linear (estimação dos betas). O R calcula o quadrado da variável original e o insere no modelo como se fosse uma nova variável independente, trabalhando com as duas forças simultaneamente.
+    - A linha de previsão "dobra" e ganha o formato de uma parábola (curva em "U" ou "U invertido"). Isso resolve o erro da reta rígida, permitindo que o modelo capture saturação, aceleração ou inversões de tendência.
+    - O impacto da variável deixa de ser constante. Em uma reta, +1 unidade de X sempre altera $Y$ na mesma proporção. No modelo quadrático, o efeito de +1 unidade depende de onde você já está no eixo
+
+##### Resíduos do modelo quadrático
+
+```{r}
+resid_auto_quad <- modelo_auto_quadratico |>
+  augment() |>
+  ggplot(aes(.fitted, .resid)) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(color = "red") +
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed",
+    color = "blue"
+  ) +
+  theme_classic()
+
+resid_auto_quad
+
+resid_auto_linear + resid_auto_quad
+```
+
+
+#### Comparação entre os modelos
+
+`anova()`` testa se a redução na Soma dos Quadrados dos Resíduos (RSS) gerada pelo modelo mais complexo é grande o suficiente para justificar o gasto de mais um grau de liberdade (a inclusão de X^2)
+
+H1: o modelo mais complexo é melhor ajustado aos dados
+
+
+```{r}
+anova(modelo_auto, modelo_auto_quadratico)
+```
+
+#### Modelo com relação linear
+
