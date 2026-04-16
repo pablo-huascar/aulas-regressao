@@ -51,14 +51,7 @@ altura_peso <- read.table(
   as_tibble()
 
 
-## Ausência de multicolinearidade
 
-# A multicolinearidade ocorre quando duas ou mais variáveis preditoras (X)
-# são altamente correlacionadas entre si.
-# O modelo linear assume que podemos interpretar
-# o coeficiente de uma variável "mantendo as outras constantes".
-# Quando as variáveis variam juntas na vida real, essa premissa matemática falha,
-# gerando estimativas instáveis.
 
 ### Banco de Dados
 ISLR::Credit

@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Pressupostos da regressão linear"
 format: html
 ---
 
@@ -16,6 +16,7 @@ library(performance)
 library(olsrr)
 library(car)
 library(palmerpenguins)
+library(discovr)
 theme_set(theme_minimal())
 ```
 
@@ -24,6 +25,12 @@ theme_set(theme_minimal())
 ```{r}
 auto <- Auto |>
   as_tibble()
+
+credit <- Credit |>
+  as_tibble()
+
+album_sales <- album_sales |> 
+  rowid_to_column()
 ```
 
 ## Linearidade
@@ -45,7 +52,6 @@ p_auto_linha_de_regressao <- p_auto +
 
 p_auto_linha_de_regressao
 
-
 p_auto_loess <- p_auto +
   geom_smooth(
     color = "red",
@@ -53,7 +59,7 @@ p_auto_loess <- p_auto +
     se = F
   )
 
- p_auto_loess
+p_auto_loess
 ```
 
 ### Modelo
@@ -70,21 +76,20 @@ summary(modelo_auto)
 
 ```{r}
 modelo_auto_augment <- modelo_auto |>
-  augment() 
-  
-resid_auto_linear <- modelo_auto_augment |> 
-  ggplot(aes(.fitted, .resid)) +
+  augment()
+
+resid_auto_linear <- modelo_auto_augment |>
+  ggplot(aes(.fitted, .std.resid)) +
   geom_jitter(alpha = 0.2) +
   geom_smooth(
     color = "red",
     se = F
-    ) +
+  ) +
   geom_hline(
     yintercept = 0,
     linetype = "dashed",
     color = "blue"
-  ) +
-  theme_minimal()
+  )
 
 resid_auto_linear
 ```
@@ -108,7 +113,12 @@ summary(modelo_auto)
 ```
 
 ```{r}
-modelo_auto_quadratico <- lm(mpg ~ horsepower + I(horsepower^2), auto)
+modelo_auto_quadratico <- lm(
+  mpg ~ horsepower +
+    I(horsepower^2),
+  auto
+)
+
 summary(modelo_auto_quadratico)
 ```
 
@@ -125,7 +135,7 @@ Erro residual diminuiu
 ```{r}
 resid_auto_quad <- modelo_auto_quadratico |>
   augment() |>
-  ggplot(aes(.fitted, .resid)) +
+  ggplot(aes(.fitted, .std.resid)) +
   geom_jitter(alpha = 0.2) +
   geom_smooth(color = "red") +
   geom_hline(
@@ -140,17 +150,318 @@ resid_auto_quad
 resid_auto_linear + resid_auto_quad
 ```
 
-
 #### Comparação entre os modelos
 
-`anova()`` testa se a redução na Soma dos Quadrados dos Resíduos (RSS) gerada pelo modelo mais complexo é grande o suficiente para justificar o gasto de mais um grau de liberdade (a inclusão de X^2)
+`anova()` testa se a redução na Soma dos Quadrados dos Resíduos (RSS) gerada pelo modelo mais complexo é grande o suficiente para justificar o gasto de mais um grau de liberdade (a inclusão de X^2)
 
 H1: o modelo mais complexo é melhor ajustado aos dados
-
 
 ```{r}
 anova(modelo_auto, modelo_auto_quadratico)
 ```
 
-#### Modelo com relação linear
+### Modelo com relação linear
 
+```{r}
+modelo_vendas_album <- lm(sales ~ adverts, data = album_sales)
+```
+
+```{r}
+modelo_vendas_album |>
+  augment() |>
+  ggplot(aes(.fitted, .std.resid)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(se = F, color = "blue") +
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed",
+    color = "red"
+  )
+```
+
+## Ausência de multicolinearidade
+
+- A multicolinearidade ocorre quando duas ou mais variáveis preditoras (X) são altamente correlacionadas entre si.
+- O modelo linear assume que podemos interpretar o coeficiente de uma variável "mantendo as outras constantes". Quando as variáveis variam juntas na vida real, essa premissa matemática falha, gerando estimativas instáveis.
+- Problemas:
+  - Coeficientes instáveis ($b$ não confiáveis): A multicolinearidade infla o erro padrão dos coeficientes. Isso significa que os valores de $b$ variam drasticamente de amostra para amostra, tornando a equação do modelo instável e incapaz de representar a verdadeira população de forma confiável.
+  - Limitação do poder explicativo (Teto para o $R^2$): Preditores altamente correlacionados explicam exatamente a mesma parte da variância do desfecho ($Y$). Logo, adicionar uma variável redundante ao modelo quase não aumenta o $R^2$, pois ela não traz nenhuma informação "única" ou nova.
+  - Confusão na importância dos preditores: Como as variáveis colineares "disputam" a explicação da mesma porção de variância, torna-se matematicamente impossível isolar o efeito individual de cada uma para saber qual delas é a verdadeira responsável por prever o desfecho. Elas se tornam intercambiáveis.
+
+```{r}
+m_limit <- lm(Balance ~ Limit, data = Credit)
+summary(m_limit)
+m_rating <- lm(Balance ~ Rating, data = Credit)
+summary(m_rating)
+m_multi <- lm(Balance ~ Limit + Rating, data = Credit)
+summary(m_multi)
+```
+
+```{r}
+performance::check_collinearity(m_multi)
+```
+
+- VIF < 10
+- Tolerance > 0.1
+
+```{r}
+cor(credit$Limit, credit$Rating)
+```
+
+## Independência dos Resíduos
+
+- Modelo linear geral: os erros (resíduos) de uma observação não têm relação alguma com os erros de outra observação. 
+- A covariância entre os resíduos deve ser zero
+- Violações:
+  - Séries temporais: o manhã depende do hoje
+  - Dados agrupados
+    - Coletei dados de 50 pacientes, mas medi a pressão e o peso de cada um deles 3 vezes ao longo de um mês
+- Problemas:
+  - Encolhe artificialmente os Erros Padrão. 
+    - O modelo acha que tem muito mais "informação nova" do que realmente tem. 
+  - Pntervalos de confiança ficam estreitos demais e valores p despencam, 
+    - Falsos positivos (Erro do Tipo I)
+
+```{r}
+modelo_albums <- lm(
+  sales ~ adverts +
+    airplay +
+    image,
+  data = album_sales
+)
+```
+
+```{r}
+performance::check_autocorrelation(modelo_albums)
+dwt(modelo_vendas_album)
+```
+
+- Alternative hypothesis: rho != 0
+  - A correlação entre os resíduos é zero
+- lag (1): Indica a "distância" testada. O valor 1: R comparou a linha 1 com a 2, a 2 com a 3, a 3 com a 4, e assim sucessivamente.
+- Autocorrelation (0.00269): É a estimativa matemática da correlação entre os resíduos adjacentes. Um valor tão próximo de zero indica ausência de relação linear entre eles.
+- D-W Statistic (1.949): É a métrica do teste. Vai de 0 a 4. O valor exato de 2.0 indica independência perfeita.
+- p-value (0.734): não rejeitamos a hipótese nula
+
+## Normalidade dos resíduos
+
+```{r}
+aug_modelo_albuns <- modelo_albums |>
+  augment() |> 
+  rowid_to_column()
+```
+
+```{r}
+aug_modelo_albuns |>
+  ggplot(aes(.std.resid)) +
+  geom_histogram(
+    color = "black", 
+    fill = "white"
+    )
+```
+
+```{r}
+aug_modelo_albuns |>
+  ggplot(aes(sample = .std.resid)) +
+  geom_qq(alpha = 0.2) +
+  geom_qq_line()
+```
+
+```{r}
+performance::check_normality(modelo_albums)
+olsrr::ols_test_normality(modelo_albums)
+shapiro.test(aug_modelo_albuns$.resid)
+```
+
+## Homocedasticidade
+
+A a variância dos resíduos (os erros do seu modelo) é constante em todos os níveis da variável independente ($X$) ou dos valores preditos ($\hat{Y}$). O modelo deve errar com a mesma "intensidade" seja prevendo o salário de um estagiário ou o salário de um CEO.
+
+### Ilustração
+
+Imagine que você está avaliando a precisão de um arqueiro.
+
+Se o alvo está a 10 metros, as flechas dele se espalham em um raio de 10 cm do centro.
+
+Se o alvo está a 50 metros, as flechas continuam se espalhando no mesmo raio de 10 cm.
+
+Esse arqueiro é homocedástico (do grego: homo = igual; skedasis = dispersão). A margem de erro dele é constante, não importa a distância (o valor da previsão).
+
+Agora, imagine um segundo arqueiro. A 10 metros, ele acerta tudo em um raio de 5 cm. Mas a 50 metros, as flechas se espalham loucamente em um raio de 1 metro. Esse arqueiro é heterocedástico (dispersão diferente). A margem de erro dele "abre como um funil" à medida que a distância aumenta.
+
+### Resíduos padronizados
+
+- Converte os erros para a métrica de desvios padrões
+
+```{r}
+aug_modelo_albuns |>
+  ggplot(aes(.fitted, .std.resid)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(
+    color = "blue",
+    se = F
+  ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed",
+    color = "red",
+    linewidth = 1
+  )
+```
+
+### Resíduos studentizados 
+
+```{r}
+aug_modelo_albuns$.student.resid <- rstudent(modelo_albums)
+```
+
+```{r}
+aug_modelo_albuns |>
+  ggplot(aes(.fitted, .student.resid)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(
+    color = "blue",
+    se = F
+  ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed",
+    color = "red",
+    linewidth = 1
+  )
+```
+
+### Teste
+
+```{r}
+olsrr::ols_test_breusch_pagan(modelo_albums)
+performance::check_heteroscedasticity(modelo_albums)
+```
+
+## Casos influentes
+
+### Resíduos padronizados
+
+- Ponto de corte:
+  - $>$ $|1.96|$ (2)
+  - $>$ $|2.58|$ (3)
+ 
+```{r}
+hist(rnorm(1000))
+```
+
+- $|1.96|$ (2): 95% dos casos
+- $|2.58|$ (3): 99% dos casos
+
+```{r}
+aug_modelo_albuns |> 
+  filter(abs(.std.resid) > 2)
+
+aug_modelo_albuns |> 
+ filter(abs(.std.resid) > 3)
+```
+
+### Hat 
+
+- Ponto de corte
+  - $2*(p + 1) / n$
+  - $3*(p + 1) / n$
+
+```{r}
+p <- length(modelo_albums$coefficients) - 1
+n <- nrow(aug_modelo_albuns)
+corte_hat <- (p + 1)/n
+```
+
+```{r}
+aug_modelo_albuns |> 
+   filter(.hat > 3*corte_hat)  
+   
+```
+
+## Distância de cook
+
+- Ponto de corte:
+  - $D_i > 4/(n - k - 1)$
+
+```{r}
+n <- nrow(aug_modelo_albuns)
+k <- length(modelo_albums$coefficients) - 1
+corte_cook <- 4/(n - k - 1)
+```
+
+```{r}
+aug_modelo_albuns |> 
+  filter(.cooksd >= corte_cook)
+```
+
+### Funções
+
+```{r}
+# Resíduos studentizados
+car::outlierTest(modelo_albums)
+olsrr::ols_test_outlier(modelo_albums)
+# Vários
+out_performance <- performance::check_outliers(
+  modelo_albums, 
+  method = "all"
+  )
+
+out_performance |> 
+  as_tibble()
+```
+
+## Removendo outliers
+
+```{r}
+album_student <- album_sales |>
+  filter_out(rowid == 169)
+```
+
+
+```{r}
+modelo_album_student <- update(
+  modelo_albums, 
+  data = album_student
+  )
+
+summary(modelo_albums)
+summary(modelo_album_student)
+```
+
+```{r}
+album_performance <- album_sales |>
+  filter_out(rowid %in% c(138, 184))
+```
+
+
+```{r}
+modelo_album_performance <- update(
+  modelo_albums, 
+  data = album_performance
+  )
+
+summary(modelo_albums)
+summary(modelo_album_performance)
+```
+
+
+```{r}
+hat_out <- aug_modelo_albuns |> 
+   filter(.hat > 3*corte_hat) |> 
+   pull(rowid)
+```
+
+
+```{r}
+album_hat <- album_sales |> 
+  filter_out(rowid %in% hat_out)
+```
+
+
+```{r}
+modelo_album_hat <- update(modelo_albums, data = album_hat)
+
+summary(modelo_albums)
+summary(modelo_album_hat)
+```
