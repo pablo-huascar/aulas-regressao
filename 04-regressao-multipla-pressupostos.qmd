@@ -88,7 +88,8 @@ resid_auto_linear <- modelo_auto_augment |>
   geom_hline(
     yintercept = 0,
     linetype = "dashed",
-    color = "blue"
+    color = "blue",
+    linewidth = 2
   )
 
 resid_auto_linear
@@ -175,7 +176,8 @@ modelo_vendas_album |>
   geom_hline(
     yintercept = 0,
     linetype = "dashed",
-    color = "red"
+    color = "red",
+    linewidth = 1
   )
 ```
 
@@ -206,6 +208,7 @@ performance::check_collinearity(m_multi)
 
 ```{r}
 cor(credit$Limit, credit$Rating)
+plot(credit$Limit, credit$Rating)
 ```
 
 ## Independência dos Resíduos
@@ -231,9 +234,11 @@ modelo_albums <- lm(
 )
 ```
 
+vendas = -26.61 + 0.08*adv + 3.37*airplay + 11.08*image + erro
+
 ```{r}
 performance::check_autocorrelation(modelo_albums)
-dwt(modelo_vendas_album)
+car::dwt(modelo_vendas_album)
 ```
 
 - Alternative hypothesis: rho != 0
@@ -264,7 +269,7 @@ aug_modelo_albuns |>
 aug_modelo_albuns |>
   ggplot(aes(sample = .std.resid)) +
   geom_qq(alpha = 0.2) +
-  geom_qq_line()
+  geom_qq_line(color = "red")
 ```
 
 ```{r}
@@ -374,8 +379,14 @@ corte_hat <- (p + 1)/n
 ```
 
 ```{r}
+lm(body_mass_g ~ flipper_length_mm, penguins) |> 
+  augment()
+```
+
+```{r}
 aug_modelo_albuns |> 
-   filter(.hat > 3*corte_hat)  
+   filter(.hat > 3*corte_hat) |>
+   pull(rowid)  
    
 ```
 
@@ -392,7 +403,8 @@ corte_cook <- 4/(n - k - 1)
 
 ```{r}
 aug_modelo_albuns |> 
-  filter(.cooksd >= corte_cook)
+  filter(.cooksd >= corte_cook) |> 
+  pull(rowid)
 ```
 
 ### Funções
@@ -408,7 +420,7 @@ out_performance <- performance::check_outliers(
   )
 
 out_performance |> 
-  as_tibble()
+  as_tibble() |> glimpse()
 ```
 
 ## Removendo outliers
@@ -428,6 +440,21 @@ modelo_album_student <- update(
 summary(modelo_albums)
 summary(modelo_album_student)
 ```
+
+```{r}
+Davis
+
+modelo_peso <- lm(weight ~ height + sex, Davis)
+car::outlierTest(modelo_peso)
+
+dados_sem_out <- modelo_peso |> 
+  augment() |> 
+  rowid_to_column() |> 
+  filter_out(rowid %in% c(12, 21))
+
+modelo_peso_sem_out <- lm(weight ~ height + sex, dados_sem_out)
+```
+
 
 ```{r}
 album_performance <- album_sales |>
