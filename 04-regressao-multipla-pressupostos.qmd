@@ -207,6 +207,15 @@ summary(modelo_auto_splines_5)
 ```
 
 ```{r}
+library(ggeffects)
+library(ggplot2)
+
+pred <- ggpredict(modelo_auto_splines_3, terms = "horsepower [all]")
+
+plot(pred)
+```
+
+```{r}
 resid_auto_splines_5 <- modelo_auto_splines_5 |>
   augment() |>
   ggplot(aes(.fitted, .std.resid)) +
@@ -239,7 +248,7 @@ df = 2
 min     |     |     max
 
 df = 3
-min     |    |     |     max
+min     |    |       max
 
 
 
@@ -268,8 +277,6 @@ range(auto$horsepower)
 - df = 3
 - São criadas três equações diferentes 
 - Cada equação é ajustada com a mesma quantidade de dados: (1/3 dos carros do banco de dados para cada uma)
-
-
 
 ### Modelo com relação linear
 
@@ -387,7 +394,7 @@ Quando o pressuposto de variância constante é violado, as consequências recae
 
 * **Distorção dos erros padrão:** O OLS calcula uma estimativa global de erro e a aplica igualmente a todos os pontos. Em regiões de alta variância, isso tende a subestimar o erro padrão real; em regiões de baixa variância, a superestimá-lo. A direção do viés depende da estrutura da heterocedasticidade.
 * **Comprometimento dos testes de hipótese e ICs:** Como os erros padrão são imprecisos, os valores *p* e os intervalos de confiança também são. O resultado mais comum é a inflação do Erro Tipo I — rejeitar H₀ quando ela é verdadeira —, mas o oposto também é possível, dependendo do padrão de variância nos dados.
-* **Perda de eficiência:** O OLS deixa de ser o estimador linear de menor variância (perde o status BLUE), o que significa que existem alternativas matematicamente mais eficientes sob heterocedasticidade.
+* **Perda de eficiência:** O OLS deixa de ser o estimador linear de menor variância, o que significa que existem alternativas matematicamente mais eficientes sob heterocedasticidade.
 * **O que não é afetado:** As estimativas dos coeficientes (β) e o R² permanecem não-viesados e consistentes. A reta de regressão continua descrevendo corretamente a tendência central dos dados.
 
 Em síntese, a heterocedasticidade não compromete a direção ou a magnitude dos efeitos estimados, mas torna a avaliação da sua significância estatística não confiável.
@@ -422,6 +429,11 @@ summary(modelo_robusto)
 
 ```{r}
 model_parameters(modelo_auto_splines_5, vcov = "HC3")
+```
+
+```{r}
+a <- lm(income ~ education + women, data = Prestige)
+b <- lm_robust(income ~ education + women, data = Prestige, se_type = "HC3")
 ```
 
 ## Normalidade dos resíduos
