@@ -18,6 +18,10 @@ library(olsrr)
 library(car)
 library(palmerpenguins)
 library(discovr)
+library(lmtest)
+library(sandwich)
+library(estimatr)
+library(parameters)
 theme_set(theme_minimal())
 ```
 
@@ -168,7 +172,6 @@ summary(modelo_auto)
 summary(modelo_auto_splines_3)
 ```
 
-
 ```{r}
 resid_auto_splines_3 <- modelo_auto_splines_3 |>
   augment() |>
@@ -215,6 +218,8 @@ resid_auto_splines_5 <- modelo_auto_splines_5 |>
     color = "blue"
   ) +
   theme_classic()
+
+resid_auto_splines_5
 ```
 
 ```{r}
@@ -228,12 +233,41 @@ anova(modelo_auto_quadratico, modelo_auto_splines_5)
 
 Como saber onde os nós foram posicionados?
 
+Quantis:
+
+df = 2
+min     |     |     max
+
+df = 3
+min     |    |     |     max
+
+
+
 ```{r}
-nots_3df <- attr(ns(auto$horsepower, df = 3), "knots")
-nots_4df <- attr(ns(auto$horsepower, df = 4), "knots")
-nots_5df <- attr(ns(auto$horsepower, df = 5), "knots")
+# DF = 3
+attr(ns(auto$horsepower, df = 3), c("knots"))
+100 / 3
+100 / 3 + 100 / 3
+quantile(auto$horsepower, probs = c(0.3333, 0.6666))
+attr(ns(auto$horsepower, df = 3), c("Boundary.knots"))
+range(auto$horsepower)
+
+attr(ns(auto$horsepower, df = 4), "knots")
+100 / 4
+quantile(auto$horsepower, probs = c(0.25, 0.5, 0.75))
+attr(ns(auto$horsepower, df = 4), c("Boundary.knots"))
+range(auto$horsepower)
+
+100 / 5
+attr(ns(auto$horsepower, df = 5), "knots")
+quantile(auto$horsepower, probs = c(0.2, 0.4, 0.6, 0.8))
+attr(ns(auto$horsepower, df = 5), c("Boundary.knots"))
+range(auto$horsepower)
 ```
 
+- df = 3
+- São criadas três equações diferentes 
+- Cada equação é ajustada com a mesma quantidade de dados: (1/3 dos carros do banco de dados para cada uma)
 
 
 
@@ -341,7 +375,53 @@ Esse arqueiro é homocedástico (do grego: homo = igual; skedasis = dispersão).
 Agora, imagine um segundo arqueiro. A 10 metros, ele acerta tudo em um raio de 5 cm. Mas a 50 metros, as flechas se espalham loucamente em um raio de 1 metro. Esse arqueiro é heterocedástico (dispersão diferente). A margem de erro dele "abre como um funil" à medida que a distância aumenta.
 
 ```{r}
-resid_auto_linear
+modelo_auto_splines_5 <- lm(mpg ~ ns(horsepower, df = 5), auto)
+resid_auto_splines_5
+check_heteroscedasticity(modelo_auto_splines_5)
+ols_test_breusch_pagan(modelo_auto_splines_5)
+```
+
+#### Qual os problemas causados pela Heterocedasticidade
+
+Quando o pressuposto de variância constante é violado, as consequências recaem sobre a inferência estatística, não sobre as estimativas dos coeficientes:
+
+* **Distorção dos erros padrão:** O OLS calcula uma estimativa global de erro e a aplica igualmente a todos os pontos. Em regiões de alta variância, isso tende a subestimar o erro padrão real; em regiões de baixa variância, a superestimá-lo. A direção do viés depende da estrutura da heterocedasticidade.
+* **Comprometimento dos testes de hipótese e ICs:** Como os erros padrão são imprecisos, os valores *p* e os intervalos de confiança também são. O resultado mais comum é a inflação do Erro Tipo I — rejeitar H₀ quando ela é verdadeira —, mas o oposto também é possível, dependendo do padrão de variância nos dados.
+* **Perda de eficiência:** O OLS deixa de ser o estimador linear de menor variância (perde o status BLUE), o que significa que existem alternativas matematicamente mais eficientes sob heterocedasticidade.
+* **O que não é afetado:** As estimativas dos coeficientes (β) e o R² permanecem não-viesados e consistentes. A reta de regressão continua descrevendo corretamente a tendência central dos dados.
+
+Em síntese, a heterocedasticidade não compromete a direção ou a magnitude dos efeitos estimados, mas torna a avaliação da sua significância estatística não confiável.
+
+#### Como lidar com Heterocedasticidade
+
+**Erros robustos**
+
+Os estimadores HC (Heteroscedasticity-Consistent) recalculam a variância ponto a ponto, em vez de usar uma estimativa global. Diferentes versões foram desenvolvidas para contornar limitações das versões anteriores:
+
+* **HC0** (White, 1980): versão original; requer amostras muito grandes (N > 1000) para resultados confiáveis.
+* **HC1** (1985): adiciona correção por graus de liberdade (n/n−k); padrão do Stata (`robust`), mas sensível a pontos extremos.
+* **HC2** (MacKinnon & White, 1985): penaliza casos de alta alavancagem usando a matriz hat; adequado quando há dispersão moderada nos preditores. Padrão do `lm_robust()` no pacote `estimatr` do R.
+* **HC3** (MacKinnon & White, 1985): aumenta a penalidade sobre pontos de alta alavancagem em relação ao HC2; melhor controle do Erro Tipo I em simulações. Recomendado para amostras pequenas a médias (N < 500) e padrão no pacote `parameters` do R.
+* **HC4 / HC4m** (2004+): penalização máxima para alavancagem; uso restrito a situações com pontos influentes severos que não podem ser removidos da amostra.
+
+
+```{r}
+modelo_robusto <- lm_robust(
+  mpg ~ ns(horsepower, df = 5),
+  data = auto,
+  se_type = "HC3"
+)
+
+confint(modelo_auto_splines_5)
+confint(modelo_robusto)
+```
+
+```{r}
+summary(modelo_robusto)
+```
+
+```{r}
+model_parameters(modelo_auto_splines_5, vcov = "HC3")
 ```
 
 ## Normalidade dos resíduos
@@ -373,6 +453,48 @@ performance::check_normality(modelo_albums)
 olsrr::ols_test_normality(modelo_albums)
 shapiro.test(aug_modelo_albuns$.resid)
 ```
+
+### Como lidar com a falta de normalidade dos resíduos?
+
+# Hierarquia de Decisão — Não-Normalidade dos Resíduos
+
+**Passo 1 — Verificar se o problema é realmente de normalidade.** Resíduos não-normais costumam ser sintoma de má especificação funcional ou heterocedásticidade disfarçadas. Corrigir essas violações primeiro frequentemente resolve o problema de normalidade junto.
+
+**Passo 2 — Priorizar inspeção gráfica sobre testes formais.** O Q-Q plot é mais informativo que o Shapiro-Wilk. Em amostras grandes, o Shapiro-Wilk rejeita normalidade por desvios triviais sem relevância prática.
+
+**Passo 3 — Avaliar o tipo e a magnitude do desvio.** Caudas pesadas simétricas (desvios nas duas pontas do Q-Q plot) são menos preocupantes: erros positivos e negativos se cancelam, os coeficientes permanecem não-viesados e os erros padrão ficam apenas levemente subestimados. Assimetria forte (desvio concentrado em apenas uma ponta do Q-Q plot) é mais grave: pode enviesar os próprios coeficientes e distorcer os intervalos de confiança de forma sistemática, pois o OLS os constrói simetricamente mesmo quando a distribuição dos erros não é.
+
+**Passo 4 — Considerar o tamanho amostral.** Com n > 200, o Teorema Central do Limite em geral garante validade assintótica da inferência. Com n < 50, a preocupação é legítima. Ainda assim, vale aplicar a correção se houver dúvida — rigor metodológico é preferível à confiança excessiva em resultados assintóticos.
+
+**Passo 5 — Escolher a correção, em ordem de preferência:**
+
+1. **Bootstrap dos coeficientes** — dispensa a premissa de normalidade, é robusto também a heterocedásticidade moderada, e não altera a interpretação dos coeficientes.
+2. **Transformação da variável dependente** (log, Box-Cox) — eficaz para assimetria, mas muda a interpretação dos coeficientes.
+3. **Regressão robusta** (`MASS::rlm`) — adequada quando o desvio é causado por outliers genuínos que não podem ser removidos por justificativa teórica.
+
+**Passo 6 — O que evitar:** remover observações apenas para "normalizar" resíduos; aplicar transformações sem justificativa substantiva; confiar cegamente em regras do tipo "se p < 0,05, transforme".
+
+
+```{r}
+data(Prestige)
+modelo <- lm(prestige ~ income + education + women, data = Prestige)
+summary(modelo)
+parameters::bootstrap_parameters(modelo, ci_method = "BCI")
+
+```
+
+- **ETI (Equal-Tailed Interval)** — corta proporções iguais de cada cauda (percentis 2,5% e 97,5% para IC 95%). É o método mais simples, equivale ao método `"perc"` do `boot.ci()`. Adequado para distribuições simétricas; perde precisão quando a distribuição bootstrap é assimétrica.
+
+- **HDI (Highest Density Interval)** — retorna o intervalo *mais curto* que contém a proporção desejada da distribuição. Coincide com o ETI em distribuições simétricas, mas se desloca para a região de maior densidade em distribuições assimétricas, produzindo intervalos mais informativos.
+
+- **BCI (Bias-Corrected and Accelerated Interval)** — equivalente funcional do `"bca"` do pacote `boot`. Aplica duas correções sobre o ETI: uma para o viés (diferença entre a mediana bootstrap e a estimativa original) e uma para a aceleração (curvatura da distribuição). É a opção mais recomendada para uso geral, especialmente quando a distribuição bootstrap é assimétrica.
+
+- **SPI (Shortest Probability Interval)** — lógica similar ao HDI (busca o intervalo mais curto), mas com estimação da densidade feita de forma diferente. Na prática, produz resultados muito próximos ao HDI.
+
+- **SI (Support Interval)** — baseado em razões de verossimilhança, não em quantis. Raro em contextos frequentistas; mais comum em aplicações bayesianas.
+
+- **Recomendação:** prefira **BCI** como padrão — é o mais robusto à assimetria e o mais próximo do BCa, que é o referencial da literatura de bootstrap frequentista.
+
 
 ## Homocedasticidade
 
@@ -408,6 +530,50 @@ aug_modelo_albuns |>
     color = "red",
     linewidth = 1
   )
+```
+
+#### Exemplo de correção da heterocedasticidade
+
+```{r}
+df_prof <- Salaries |> 
+  as_tibble()
+```
+
+```{r}
+modelo_ols <- lm(
+  salary ~ yrs.since.phd + sex,
+  data = df_prof
+)
+```
+
+```{r}
+modelo_ols |> 
+  augment() |> 
+  ggplot(aes(.fitted, .resid)) +
+  geom_point() +
+  geom_smooth()
+```
+
+```{r}
+ols_test_breusch_pagan(modelo_ols)
+```
+
+```{r}
+modelo_hc3 <- lm_robust(
+  salary ~ yrs.since.phd + sex,
+  data = df_prof,
+  se_type = "HC3"
+)
+```
+
+```{r}
+confint(modelo_ols)
+confint(modelo_hc3)
+```
+
+```{r}
+summary(modelo_ols)
+summary(modelo_hc3)
 ```
 
 ### Resíduos studentizados 
@@ -588,3 +754,99 @@ modelo_album_hat <- update(modelo_albums, data = album_hat)
 summary(modelo_albums)
 summary(modelo_album_hat)
 ```
+
+
+# Exercícios de Regressão Linear — Diagnóstico e Correção de Pressupostos
+
+**Instruções Gerais:**
+
+Para cada um dos cenários abaixo, a sua missão como analista de dados é:
+
+1. Carregar o pacote indicado e o banco de dados.
+2. Identificar as variáveis e ajustar o modelo de regressão linear (simples ou múltipla) proposto no enunciado.
+3. Realizar o diagnóstico rigoroso e completo dos pressupostos clássicos (Linearidade, Homocedásticidade, Normalidade dos Resíduos, Multicolinearidade e Casos Influentes/Outliers), utilizando inspeção gráfica e testes formais no R.
+4. Caso encontre a violação de algum pressuposto ou anomalias graves na estrutura dos dados, aplique a correção metodológica adequada (ex: transformação de variáveis, modelos polinomiais/splines, estimadores robustos HC, remoção justificada de observações, etc.).
+5. Redija um breve parágrafo interpretando a falha encontrada, justificando a sua correção e relatando o impacto dessa correção nos resultados finais (mudança nos coeficientes, no Erro Padrão, no R² ou no Valor p).
+
+---
+
+## Exercício 1: Saúde Pública e Economia
+
+Como pesquisador em saúde pública, você quer modelar o impacto da riqueza de uma nação na sua taxa de mortalidade infantil.
+
+- **Pacote:** `carData`
+- **Banco de Dados:** `UN` (Dados das Nações Unidas)
+- **Variável Dependente (Desfecho):** `infantMortality` (Mortalidade Infantil)
+- **Variável Independente (Preditor):** `ppgdp` (PIB per capita)
+
+---
+
+## Exercício 2: Precificação de Joias
+
+Você foi contratado para criar um modelo de precificação de diamantes. A teoria do setor sugere que o preço de um diamante é diretamente impulsionado pelo seu peso. Antes de iniciar a análise, extraia uma amostra aleatória de 1.000 casos do banco de dados (dica: use `set.seed(123)` e a função `sample_n()` para que os resultados sejam reprodutíveis).
+
+- **Pacote:** `ggplot2` (ou carregue o `tidyverse` inteiro)
+- **Banco de Dados:** `diamonds`
+- **Variável Dependente (Desfecho):** `price` (Preço em dólares)
+- **Variável Independente (Preditor):** `carat` (Peso em quilates)
+
+---
+
+## Exercício 3: Sociologia das Profissões
+
+Em 1950, o pesquisador O.D. Duncan tentou prever o "prestígio" social de diferentes profissões com base no nível de renda e no nível educacional exigido por elas. Sua tarefa é replicar e auditar esse modelo histórico.
+
+- **Pacote:** `carData`
+- **Banco de Dados:** `Duncan`
+- **Variável Dependente (Desfecho):** `prestige` (Prestígio Ocupacional)
+- **Variáveis Independentes (Preditores):** `income` (Renda) e `education` (Educação)
+
+---
+
+## Exercício 4: Análise de Risco de Crédito
+
+Uma instituição financeira deseja prever qual será a dívida média de um cliente no cartão de crédito. Você recebeu um banco de dados financeiro e decidiu utilizar os três principais indicadores disponíveis sobre o cliente para compor o seu modelo preditivo.
+
+- **Pacote:** `ISLR`
+- **Banco de Dados:** `Credit`
+- **Variável Dependente (Desfecho):** `Balance` (Dívida do cartão)
+- **Variáveis Independentes (Preditores):** `Limit` (Limite de crédito), `Rating` (Score de crédito) e `Income` (Renda do cliente)
+
+---
+
+## Exercício 5: Prestígio Ocupacional no Canadá
+
+Como sociólogo do trabalho, você quer investigar em que medida o prestígio de uma ocupação é explicado pela renda média dos trabalhadores, pelo nível educacional exigido e pela participação feminina na profissão.
+
+- **Pacote:** `car`
+- **Banco de Dados:** `Prestige` (ocupações canadenses, 1971)
+- **Variável Dependente (Desfecho):** `prestige` (Prestígio Ocupacional)
+- **Variáveis Independentes (Preditores):** `income` (Renda média), `education` (Anos médios de educação) e `women` (Percentual de mulheres na ocupação)
+
+Observe com atenção se algum preditor muda de significância após a aplicação da correção apropriada.
+
+---
+
+## Exercício 6: Economia Imobiliária de Boston
+
+Você trabalha como analista imobiliário e deseja construir um modelo para prever o valor mediano dos imóveis em diferentes bairros de Boston a partir de características socioeconômicas e estruturais.
+
+- **Pacote:** `MASS`
+- **Banco de Dados:** `Boston`
+- **Variável Dependente (Desfecho):** `medv` (Valor mediano dos imóveis, em milhares de dólares)
+- **Variáveis Independentes (Preditores):** `lstat` (Percentual de população de baixo status socioeconômico), `rm` (Número médio de cômodos por residência) e `age` (Proporção de imóveis construídos antes de 1940)
+
+Este modelo pode apresentar mais de uma violação simultânea. Reflita sobre a ordem em que as correções devem ser aplicadas e justifique sua escolha no relatório.
+
+---
+
+## Exercício 7: Macroeconomia Histórica dos EUA
+
+Você é economista e recebeu a tarefa de modelar o nível de emprego nos Estados Unidos entre 1947 e 1962 a partir de indicadores macroeconômicos do período.
+
+- **Pacote:** `datasets` (já disponível no R base)
+- **Banco de Dados:** `longley`
+- **Variável Dependente (Desfecho):** `Employed` (Número de pessoas empregadas, em milhões)
+- **Variáveis Independentes (Preditores):** `GNP` (Produto Nacional Bruto), `GNP.deflator` (Deflator do PNB), `Population` (População) e `Year` (Ano)
+
+Observe o comportamento dos coeficientes e de seus erros padrão. Discuta por que a aplicação de erros padrão robustos (HC) não seria a correção adequada para o problema diagnosticado neste exercício.
