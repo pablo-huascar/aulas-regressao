@@ -63,7 +63,10 @@ coef(m2)
 y = a + b1X + b2W + b3XW
 y = a + b2W +X(b1 + b3W)
 
+y = a + b1X + b2W + b3XW
 y = 31.41 + (-3.78*wt) + 14.87*manual + (-5.29*wt*manual)
+
+y = a + b2W +X(b1 + b3W)
 y = 31.41 + 14.87*manual + wt(-3.78 + -5.29*manual)
 
 - Câmbio automático (0):
@@ -83,7 +86,11 @@ y = 46.28 + -9.07*wt
 
 Então: nos carros de câmbio manual, para cada unidade de wt há a redução de 9.07 em mpg
 
+
+
 - b3: diferença da inclinação entre carros automáticos e manuais
+
+y = a + b1X + b2W + b3XW
 
 Automático
 y = 31.41 + -3.78*wt
@@ -167,6 +174,9 @@ interact_plot(
   legend.main = "Câmbio",
   colors = c("steelblue", "tomato")
 )
+
+interact_plot(model = m2, pred = wt, modx = am)
+
 ```
 
 ## Slopes simples como teste estatístico
@@ -292,7 +302,7 @@ wt_media_m2 <- expand.grid(
   am = c("automatic", "manual")
 )
 
-wt_media_m2$mpg_pred <- predict(m2, wt_media_2)
+wt_media_m2$mpg_pred <- predict(m2, wt_media_m2)
 wt_media_m2
 emmeans(m2, ~am)
 
@@ -321,7 +331,18 @@ emm <- emmeans(
 pairs(emm)
 ```
 
+```{r}
+quartis <- unname(quantile(mtcars$wt))
 
+emm <- emmeans(
+  m2,
+  ~ am | wt,
+  at = list(wt = quartis)
+)
+
+# Contraste Manual - Automático em cada valor de wt
+pairs(emm)
+```
 
 
 ###
