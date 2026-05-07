@@ -1,0 +1,105 @@
+---
+title: "Untitled"
+format: html
+---
+
+
+```{r}
+library(tidyverse)
+library(palmerpenguins)
+theme_set(theme_classic())
+```
+
+```{r}
+mtcars <- as_tibble(mtcars)
+
+mtcars <- mtcars |> 
+    mutate(
+        am = case_when(am == 0 ~ "automatic",
+        .default = "manual"),
+        am = fct_relevel(am, "automatic")
+    )
+```
+
+
+```{r}
+mtcars |> 
+    ggplot(aes(wt, mpg)) +
+    geom_point(alpha = 0.3) +
+    geom_smooth(
+        method = "lm",
+    se = F 
+        )
+```
+
+
+```{r}
+m1 <- lm(mpg ~ wt + am, mtcars)
+summary(m1)
+```
+
+
+# Interação
+
+```{r}
+mtcars |> 
+    ggplot(aes(wt, mpg, color = am)) +
+    geom_point(alpha = 0.3) +
+    geom_smooth(
+        method = "lm",
+        se = F
+        )
+```
+
+```{r}
+m2 <- lm(mpg ~ wt*am, mtcars)
+summary(m2)
+coef(m2)
+```
+
+y = a + b1X + b2W + b3XW
+y = a + b2W +X(b1 + b3W)
+
+y = 31.41 + (-3.78*wt) + 14.87*manual + (-5.29*wt*manual)
+y = 31.41 + 14.87*manual + wt(-3.78 + -5.29*manual)
+
+- Câmbio automático (0):
+
+y = 31.41 + 14.87*0 + wt(-3.78 + -5.29*0)
+y = 31.41 + -3.78*wt 
+
+- b1 = inclinação de wt quando am = 0, portanto, câmbio automático
+
+Então: nos carros de câmbio automático, para cada unidade de wt há a redução de 3.78 em mpg
+
+
+- Câmbio manual (1)
+
+y = 31.41 + 14.87*1 + wt(-3.78 + -5.29*1)
+y = 46.28 + -9.07*wt
+-9.07 = inclinação de wt para carros manuais
+
+Então: nos carros de câmbio manual, para cada unidade de wt há a redução de 9.07 em mpg
+
+
+
+
+```{r}
+penguins |> 
+    ggplot(aes(flipper_length_mm, body_mass_g)) +
+    geom_point() +
+    geom_smooth(method = "lm")
+```
+
+
+```{r}
+penguins |> 
+    ggplot(aes(flipper_length_mm, body_mass_g, color = species)) +
+    geom_point() +
+    geom_smooth(method = "lm")
+
+```
+
+
+
+```
