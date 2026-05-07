@@ -3,33 +3,36 @@ title: "Untitled"
 format: html
 ---
 
-
 ```{r}
 library(tidyverse)
+library(interactions)
 library(palmerpenguins)
+library(emmeans)
 theme_set(theme_classic())
 ```
+
+## Moderação em `mtcars`
 
 ```{r}
 mtcars <- as_tibble(mtcars)
 
-mtcars <- mtcars |> 
-    mutate(
-        am = case_when(am == 0 ~ "automatic",
-        .default = "manual"),
-        am = fct_relevel(am, "automatic")
-    )
+mtcars <- mtcars |>
+  mutate(
+    am = case_when(am == 0 ~ "automatic", .default = "manual"),
+    am = fct_relevel(am, "automatic")
+  )
 ```
 
+### Modelo aditivo
 
 ```{r}
-mtcars |> 
-    ggplot(aes(wt, mpg)) +
-    geom_point(alpha = 0.3) +
-    geom_smooth(
-        method = "lm",
-    se = F 
-        )
+mtcars |>
+  ggplot(aes(wt, mpg)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(
+    method = "lm",
+    se = F
+  )
 ```
 
 
@@ -39,20 +42,20 @@ summary(m1)
 ```
 
 
-# Interação
+### Modelo com Interação
 
 ```{r}
-mtcars |> 
-    ggplot(aes(wt, mpg, color = am)) +
-    geom_point(alpha = 0.3) +
-    geom_smooth(
-        method = "lm",
-        se = F
-        )
+mtcars |>
+  ggplot(aes(wt, mpg, color = am)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(
+    method = "lm",
+    se = F
+  )
 ```
 
 ```{r}
-m2 <- lm(mpg ~ wt*am, mtcars)
+m2 <- lm(mpg ~ wt * am, mtcars)
 summary(m2)
 coef(m2)
 ```
@@ -72,7 +75,6 @@ y = 31.41 + -3.78*wt
 
 Então: nos carros de câmbio automático, para cada unidade de wt há a redução de 3.78 em mpg
 
-
 - Câmbio manual (1)
 
 y = 31.41 + 14.87*1 + wt(-3.78 + -5.29*1)
@@ -81,25 +83,278 @@ y = 46.28 + -9.07*wt
 
 Então: nos carros de câmbio manual, para cada unidade de wt há a redução de 9.07 em mpg
 
+- b3: diferença da inclinação entre carros automáticos e manuais
 
+Automático
+y = 31.41 + -3.78*wt
+Manual
+y = 46.28 + -9.07*wt
+
+b2: Diferença em mpg entre Automático e Manual quando wt = 0 (não é a "diferença média entre os grupos")
+
+y_manual - y_auto = 46.28 + -9.07*wt - (31.41 + -3.78*wt)
+y_manual - y_auto = 46.28 + -9.07*wt - 31.41 + 3.78*wt
+
+y_manual - y_auto = 14.87 -5.29*wt
+
+b2 = 14.87
+b3 = -5.29
+
+y_manual - y_auto = b2 + b3*wt 
+
+```{r}
+novo <- expand.grid(
+  wt = c(0, 2, 3, 4),
+  am = c("automatic", "manual")
+)
+novo$mpg_pred <- predict(m2, newdata = novo)
+
+novo |>
+  pivot_wider(names_from = am, values_from = mpg_pred) |>
+  mutate(
+    dif = manual - automatic
+  )
+```
+
+### Modelo com variável numérica centralizada
+
+```{r}
+mtcars <- mtcars |>
+  mutate(
+    wt_center = wt - mean(wt)
+  )
+
+m3 <- lm(mpg ~ wt_center * am, mtcars)
+summary(m3)
+```
+
+```{r}
+m_wt <- mean(mtcars$wt)
+
+novo <- expand.grid(
+  wt = m_wt,
+  am = c("automatic", "manual")
+)
+novo$mpg_pred <- predict(m2, newdata = novo)
+
+novo |>
+  pivot_wider(
+    names_from = am,
+    values_from = mpg_pred
+  ) |>
+  mutate(
+    dif = manual - automatic
+  )
+
+m_wt
+coef(m3)["ammanual"]
+```
+
+como 0 numa distribuição centralizada na média equivale a média, então:
+
+- b2 = A diferença entre grupos para um carro de peso médio
+
+### Gráfico da interação no modelo
+
+```{r}
+interact_plot(
+  m2,
+  pred = wt,
+  modx = am,
+  plot.points = TRUE,
+  x.label = "Peso (1000 lbs)",
+  y.label = "Consumo (mpg)",
+  legend.main = "Câmbio",
+  colors = c("steelblue", "tomato")
+)
+```
+
+## Slopes simples como teste estatístico
+
+- O teste de interação (b₃) pergunta: "As duas inclinações são diferentes entre si?"
+- O sim_slopes pergunta: "Dentro de cada grupo, a inclinação é diferente de zero?" — ou "Dentro de cada grupo, há associação linear entre wt e mpg?"
 
 
 ```{r}
-penguins |> 
-    ggplot(aes(flipper_length_mm, body_mass_g)) +
-    geom_point() +
-    geom_smooth(method = "lm")
+sim_slopes(m2, pred = wt, modx = am)
+```
+
+### Exemplo de simple slopes em que não há associação linear
+
+```{r}
+set.seed(42)
+n <- 50
+
+# Automático: inclinação ≈ 0 (sem associação entre wt e mpg)
+wt_auto <- runif(n, 1.5, 5.5)
+mpg_auto <- 25 + 0 * wt_auto + rnorm(n, 0, 4)
+
+# Manual: inclinação claramente negativa (forte associação)
+wt_manual <- runif(n, 1.5, 5.5)
+mpg_manual <- 45 - 4 * wt_manual + rnorm(n, 0, 4)
+
+dados <- data.frame(
+  mpg = c(mpg_auto, mpg_manual),
+  wt = c(wt_auto, wt_manual),
+  am = factor(rep(c("Automatico", "Manual"), each = n))
+)
+```
+
+```{r}
+dados |>
+  ggplot(aes(wt, mpg, color = am)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(
+    method = "lm",
+    se = FALSE
+  ) +
+  labs(
+    x = "Peso (wt)",
+    y = "Consumo (mpg)",
+    color = "Câmbio"
+  )
+```
+
+```{r}
+modelo <- lm(mpg ~ wt * am, data = dados)
+
+# Teste de interação (b₃): as inclinações são diferentes entre si?
+summary(modelo)
+
+# sim_slopes: dentro de cada grupo, há associação linear entre wt e mpg?
+sim_slopes(modelo, pred = wt, modx = am)
+```
+
+```{r}
+interact_plot(
+  modelo,
+  pred = wt,
+  modx = am,
+  plot.points = TRUE,
+  x.label = "Peso (wt)",
+  y.label = "Consumo (mpg)",
+  legend.main = "Câmbio"
+)
+```
+
+## Médias marginais estimadas
+
+Em um modelo de regressão com um preditor contínuo e um fator, as médias marginais estimadas (EMMs, do pacote emmeans) são os valores preditos pelo modelo para cada nível do fator, com o preditor contínuo fixado na sua média.
+
+O "marginais" vem de marginalizar — ou seja, tirar o efeito do contínuo de cena, ancorando-o em um valor representativo (a média), para que a comparação entre grupos seja feita em condições equivalentes.
+
+### Modelo aditivo
+
+No modelo aditivo (mpg ~ wt + am), as EMMs são simplesmente os valores preditos para cada grupo quando wt = mean(wt). A comparação entre os grupos não depende de wt porque as retas são paralelas — a diferença é constante.
+
+```{r}
+summary(m1)
+```
+
+```{r}
+wt_media_m1 <- expand.grid(
+  wt = m_wt,
+  am = c("automatic", "manual")
+)
+
+wt_media_m1$mpg_pred <- predict(m1, wt_media_m1)
+wt_media_m1
+emmeans(m1, ~am)
+```
+
+A coluna emmean mostra o valor de mpg que o modelo prediz para cada grupo naquele valor específico de wt.
+
+y = a + b1*wt + b2*am
+y = 37.32155 + (-5.35281*wt) + (-0.02362*am)
+```{r}
+# Automático
+m_wt
+y_auto <- 37.32155 + (-5.35281*m_wt) + (-0.02362*0)
+y_auto
+
+## Manual
+y_manual <- 37.32155 + (-5.35281*m_wt) + (-0.02362*1)
+y_manual
+```
+
+
+### Modelo com interação
+
+No modelo com interação (mpg ~ wt * am), as retas não são paralelas, então a comparação entre grupos depende do valor de wt. As EMMs continuam sendo calculadas em wt = mean(wt) por padrão, mas agora esse valor é uma escolha — em outro valor de wt a diferença seria outra. 
+
+```{r}
+summary(m2)
+```
+
+```{r}
+wt_media_m2 <- expand.grid(
+  wt = m_wt,
+  am = c("automatic", "manual")
+)
+
+wt_media_m2$mpg_pred <- predict(m2, wt_media_2)
+wt_media_m2
+emmeans(m2, ~am)
+
+```
+
+```{r}
+emmeans(
+  m2,
+  ~ am | wt,
+  at = list(wt = c(2, 2.5, 3, 3.22))
+)
+```
+
+Comparação entre pares
+
+automático e manual têm o mesmo mpg previsto nesse peso?"
+
+```{r}
+emm <- emmeans(
+  m2,
+  ~ am | wt,
+  at = list(wt = c(2, 2.5, 3, 3.22))
+)
+
+# Contraste Manual - Automático em cada valor de wt
+pairs(emm)
+```
+
+
+
+
+###
+```{r}
+penguins |>
+  ggplot(aes(flipper_length_mm, body_mass_g)) +
+  geom_point() +
+  geom_smooth(method = "lm")
 ```
 
 
 ```{r}
-penguins |> 
-    ggplot(aes(flipper_length_mm, body_mass_g, color = species)) +
-    geom_point() +
-    geom_smooth(method = "lm")
-
+penguins |>
+  ggplot(aes(flipper_length_mm, body_mass_g, color = species)) +
+  geom_point() +
+  geom_smooth(
+    method = "lm",
+    se = F
+  )
 ```
 
 
 
+
+```{r}
+m4 <- lm(body_mass_g ~ flipper_length_mm * species, penguins)
+```
+
+```{r}
+interact_plot(model = m4, pred = flipper_length_mm, modx = species)
+```
+
+
+```{r}
+sim_slopes(m4, flipper_length_mm, modx = species)
 ```
