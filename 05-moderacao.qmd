@@ -11,7 +11,7 @@ library(emmeans)
 theme_set(theme_classic())
 ```
 
-## Moderação em `mtcars`
+## Moderação variável contínua e variável categórica
 
 ```{r}
 mtcars <- as_tibble(mtcars)
@@ -345,37 +345,33 @@ pairs(emm)
 ```
 
 
-###
-```{r}
-penguins |>
-  ggplot(aes(flipper_length_mm, body_mass_g)) +
-  geom_point() +
-  geom_smooth(method = "lm")
-```
-
+## Duas variáveis categóricas
 
 ```{r}
-penguins |>
-  ggplot(aes(flipper_length_mm, body_mass_g, color = species)) +
-  geom_point() +
-  geom_smooth(
-    method = "lm",
-    se = F
-  )
-```
-
-
-
-
-```{r}
-m4 <- lm(body_mass_g ~ flipper_length_mm * species, penguins)
+ToothGrowth <- ToothGrowth |> 
+  mutate(
+    dose = as_factor(dose)
+  ) |> 
+    as_tibble()
 ```
 
 ```{r}
-interact_plot(model = m4, pred = flipper_length_mm, modx = species)
+m_dente <- lm(len ~ supp * dose, data = ToothGrowth)
+summary(m_dente)
 ```
 
+y = a + b1x + b2w + b3x*w
+y = 13.230 + 
 
 ```{r}
-sim_slopes(m4, flipper_length_mm, modx = species)
+emm_dente <- emmeans(m_dente, ~ supp | dose)
+
+emm_dente
+# Diferença OJ - VC em cada nível de dose
+pairs(emm_dente)
+
+cat_plot(m_dente, pred = dose, modx = supp,
+         x.label = "Dose",
+         y.label = "Comprimento do dente",
+         legend.main = "Suplemento", )
 ```
