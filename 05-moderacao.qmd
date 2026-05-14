@@ -355,6 +355,8 @@ ToothGrowth <- ToothGrowth |>
     dose = as_factor(dose)
   ) |> 
     as_tibble()
+
+ToothGrowth
 ```
 
 ```{r}
@@ -389,8 +391,8 @@ contrastes |>
 
 contrasts(ToothGrowth$dose)
 #y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
-y1 = 13.23 + (-5.25*0) + 9.47*0 + 12.830*0 + (-0.68*0*0) + 5.33*0*0
-y1 # Média de crescimento para suplemento OJ na dose de 0.5
+y1_oj = 13.23 + (-5.25*0) + 9.47*0 + 12.830*0 + (-0.68*0*0) + 5.33*0*0
+y1_oj # Média de crescimento para suplemento OJ na dose de 0.5
 ```
 
 
@@ -400,8 +402,8 @@ contrastes |>
 
 
 #y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
-y2 = 13.23 + (-5.25*0) + 9.47*1 + 12.830*0 + (-0.68*0*1) + 5.33*0*0
-y2 # Média de crescimento para OJ na dose 1
+y2_oj = 13.23 + (-5.25*0) + 9.47*1 + 12.830*0 + (-0.68*0*1) + 5.33*0*0
+y2_oj # Média de crescimento para OJ na dose 1
 ```
 
 ```{r}
@@ -410,9 +412,20 @@ contrastes |>
 
 
 #y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
-y3 = 13.23 + (-5.25*0) + 9.47*0 + 12.830*1 + (-0.68*0*0) + 5.33*0*1
-y3 # Média de crescimento para OJ na dose 2
+y3_oj = 13.23 + (-5.25*0) + 9.47*0 + 12.830*1 + (-0.68*0*0) + 5.33*0*1
+y3_oj # Média de crescimento para OJ na dose 2
 ```
+
+```{r}
+contrastes |> 
+  slice(4)
+
+
+#y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
+y1_vc = 13.23 + (-5.25*1) + 9.47*0 + 12.830*0 + (-0.68*1*0) + 5.33*1*0
+y1_vc # Média de crescimento para VC na dose 0.5
+```
+
 
 
 ```{r}
