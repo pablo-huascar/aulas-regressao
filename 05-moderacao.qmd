@@ -176,7 +176,6 @@ interact_plot(
 )
 
 interact_plot(model = m2, pred = wt, modx = am)
-
 ```
 
 ## Slopes simples como teste estatístico
@@ -279,11 +278,11 @@ y = 37.32155 + (-5.35281*wt) + (-0.02362*am)
 ```{r}
 # Automático
 m_wt
-y_auto <- 37.32155 + (-5.35281*m_wt) + (-0.02362*0)
+y_auto <- 37.32155 + (-5.35281 * m_wt) + (-0.02362 * 0)
 y_auto
 
 ## Manual
-y_manual <- 37.32155 + (-5.35281*m_wt) + (-0.02362*1)
+y_manual <- 37.32155 + (-5.35281 * m_wt) + (-0.02362 * 1)
 y_manual
 ```
 
@@ -305,7 +304,6 @@ wt_media_m2 <- expand.grid(
 wt_media_m2$mpg_pred <- predict(m2, wt_media_m2)
 wt_media_m2
 emmeans(m2, ~am)
-
 ```
 
 ```{r}
@@ -350,24 +348,24 @@ pairs(emm)
 - O efeito do tipo de suplemento (supp) sobre o crescimento (len) depende da dose (dose)?
 
 ```{r}
-ToothGrowth <- ToothGrowth |> 
+ToothGrowth <- ToothGrowth |>
   mutate(
     dose = as_factor(dose)
-  ) |> 
-    as_tibble()
+  ) |>
+  as_tibble()
 
 ToothGrowth
 ```
 
 ```{r}
 contrastes <- tribble(
-  ~VC,      ~dose1, ~dose2,
-  "0 (OJ)",      0,      0,
-  "0 (OJ)",      1,      0,
-  "0 (OJ)",      0,      1,
-  "1 (VC)",      0,      0,
-  "1 (VC)",      1,      0,
-  "1 (VC)",      0,      1
+  ~VC      , ~dose1 , ~dose2 ,
+  "0 (OJ)" ,      0 ,      0 ,
+  "0 (OJ)" ,      1 ,      0 ,
+  "0 (OJ)" ,      0 ,      1 ,
+  "1 (VC)" ,      0 ,      0 ,
+  "1 (VC)" ,      1 ,      0 ,
+  "1 (VC)" ,      0 ,      1
 )
 
 contrasts(ToothGrowth$supp)
@@ -386,57 +384,215 @@ y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 
 ### Linha 1: suplemento OJ e dose 0.5
 
 ```{r}
-contrastes |> 
+contrastes |>
   slice(1)
 
 contrasts(ToothGrowth$dose)
-#y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
-y1_oj = 13.23 + (-5.25*0) + 9.47*0 + 12.830*0 + (-0.68*0*0) + 5.33*0*0
+# y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
+y1_oj = 13.23 +
+  (-5.25 * 0) +
+  9.47 * 0 +
+  12.830 * 0 +
+  (-0.68 * 0 * 0) +
+  5.33 * 0 * 0
 y1_oj # Média de crescimento para suplemento OJ na dose de 0.5
 ```
 
 
 ```{r}
-contrastes |> 
+contrastes |>
   slice(2)
 
-
-#y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
-y2_oj = 13.23 + (-5.25*0) + 9.47*1 + 12.830*0 + (-0.68*0*1) + 5.33*0*0
+# y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
+y2_oj = 13.23 +
+  (-5.25 * 0) +
+  9.47 * 1 +
+  12.830 * 0 +
+  (-0.68 * 0 * 1) +
+  5.33 * 0 * 0
 y2_oj # Média de crescimento para OJ na dose 1
 ```
 
 ```{r}
-contrastes |> 
+contrastes |>
   slice(3)
 
-
-#y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
-y3_oj = 13.23 + (-5.25*0) + 9.47*0 + 12.830*1 + (-0.68*0*0) + 5.33*0*1
+# y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
+y3_oj = 13.23 +
+  (-5.25 * 0) +
+  9.47 * 0 +
+  12.830 * 1 +
+  (-0.68 * 0 * 0) +
+  5.33 * 0 * 1
 y3_oj # Média de crescimento para OJ na dose 2
 ```
 
 ```{r}
-contrastes |> 
+contrastes |>
   slice(4)
 
-
-#y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
-y1_vc = 13.23 + (-5.25*1) + 9.47*0 + 12.830*0 + (-0.68*1*0) + 5.33*1*0
+# y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
+y1_vc = 13.23 +
+  (-5.25 * 1) +
+  9.47 * 0 +
+  12.830 * 0 +
+  (-0.68 * 1 * 0) +
+  5.33 * 1 * 0
 y1_vc # Média de crescimento para VC na dose 0.5
 ```
 
+```{r}
+contrastes |>
+  slice(5)
 
+# y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
+y2_vc = 13.23 +
+  (-5.25 * 1) +
+  9.47 * 1 +
+  12.830 * 0 +
+  (-0.68 * 1 * 1) +
+  5.33 * 1 * 0
+# Note que [(-0.68*suppVC:dose1) = -0.68] ajusta o valor para VC na dose 1
+y2_vc # Média de crescimento para VC na dose 1
+```
+
+```{r}
+contrastes |>
+  slice(6)
+
+# y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
+y3_vc = 13.23 +
+  (-5.25 * 1) +
+  9.47 * 0 +
+  12.830 * 1 +
+  (-0.68 * 1 * 0) +
+  5.33 * 1 * 1
+# Note que [5.33*suppVC:dose2] ajusta o valor para VC na dose 2
+y3_vc # Média de crescimento para VC na dose 2
+```
+
+## Médias marginais estimadas
+
+- "Qual é o comprimento médio dos dentes para cada suplemento, dentro de cada dose?"
+- Olhando de forma comparativa: "OJ e VC produzem crescimentos diferentes, e essa diferença muda conforme a dose?"
 
 ```{r}
 emm_dente <- emmeans(m_dente, ~ supp | dose)
-
 emm_dente
-# Diferença OJ - VC em cada nível de dose
-pairs(emm_dente)
+cat(
+  "Dose 0.5 \n",
+  y1_oj,
+  "\n",
+  y1_vc,
+  "\n",
+  "Dose 1 \n",
+  y2_oj,
+  "\n",
+  y2_vc,
+  "\n",
+  "Dose 2 \n",
+  y3_oj,
+  "\n",
+  y3_vc
+)
+```
 
-cat_plot(m_dente, pred = dose, modx = supp,
-         x.label = "Dose",
-         y.label = "Comprimento do dente",
-         legend.main = "Suplemento", )
+- A diferença entre os crescimentos entre suplementos em cada dose é estatisticamente signficativa?
+ 
+```{r}
+pairs(emm_dente)
+```
+
+- Nas doses 0.5 e 1, OJ promove mais crescimento que VC.
+- Na dose 2, não há diferença entre o crescimento promovido pelos suplementos
+
+```{r}
+cat_plot(
+  m_dente,
+  pred = dose,
+  modx = supp,
+  x.label = "Dose",
+  y.label = "Comprimento do dente",
+  legend.main = "Suplemento",
+)
+```
+
+
+## Duas variáveis contínuas
+
+- o efeito da circunferência do tronco (Girth) sobre o volume de madeira (Volume) depende da altura da árvore (Height)?
+
+
+```{r}
+data(trees)
+
+trees_c <- trees |>
+  mutate(
+    Girth_c  = Girth  - mean(Girth),
+    Height_c = Height - mean(Height)
+  )
+
+m_trees <- lm(Volume ~ Girth_c * Height_c, data = trees_c)
+summary(m_trees)
+
+```
+
+
+```{r}
+interact_plot(m_trees,
+              pred        = Girth_c,
+              modx        = Height_c,
+              modx.values = "plus-minus",
+              interval    = TRUE,
+              x.label     = "Circunferência (centrada)",
+              y.label     = "Volume de madeira",
+              legend.main = "Altura (centrada)")
+```
+
+
+```{r}
+sim_slopes(m_trees,
+           pred           = Girth_c,
+           modx           = Height_c,
+           johnson_neyman = TRUE)
+```
+
+
+- O efeito da potência (hp) sobre o consumo (mpg) depende do peso do carro (wt)?
+
+```{r}
+mtcars_c <- mtcars |> 
+  mutate(
+    hp_c = hp - mean(hp),
+    wt_c = wt - mean(wt)
+  )
+
+m_mt <- lm(mpg ~ hp_c * wt_c, data = mtcars_c)
+summary(m_mt, digits = 3)
+performance::check_collinearity(m_mt)
+```
+
+
+```{r}
+interact_plot(m_mt,
+              pred        = hp_c,
+              modx        = wt_c,
+              modx.values = "plus-minus",
+              interval    = TRUE,
+              x.label     = "Potência (centrada)",
+              y.label     = "Consumo (mpg)",
+              legend.main = "Peso (centrado)")
+```
+
+
+```{r}
+sim_slopes(m_mt,
+           pred           = hp_c,
+           modx           = wt_c,
+           johnson_neyman = TRUE)
+```
+
+
+```{r}
+process(data = trees, y = "Volume", x = "Girth" , w  = "Height", jn = 1, center = 1, plot = 1)
 ```
