@@ -347,6 +347,8 @@ pairs(emm)
 
 ## Duas variáveis categóricas
 
+- O efeito do tipo de suplemento (supp) sobre o crescimento (len) depende da dose (dose)?
+
 ```{r}
 ToothGrowth <- ToothGrowth |> 
   mutate(
@@ -356,12 +358,62 @@ ToothGrowth <- ToothGrowth |>
 ```
 
 ```{r}
+contrastes <- tribble(
+  ~VC,      ~dose1, ~dose2,
+  "0 (OJ)",      0,      0,
+  "0 (OJ)",      1,      0,
+  "0 (OJ)",      0,      1,
+  "1 (VC)",      0,      0,
+  "1 (VC)",      1,      0,
+  "1 (VC)",      0,      1
+)
+
+contrasts(ToothGrowth$supp)
+contrasts(ToothGrowth$dose)
+contrastes
+```
+
+```{r}
 m_dente <- lm(len ~ supp * dose, data = ToothGrowth)
 summary(m_dente)
 ```
 
-y = a + b1x + b2w + b3x*w
-y = 13.230 + 
+y = a + b1X + b2W1 + b3W2 + b3XW1 + b4XW2
+y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
+
+### Linha 1: suplemento OJ e dose 0.5
+
+```{r}
+contrastes |> 
+  slice(1)
+
+contrasts(ToothGrowth$dose)
+#y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
+y1 = 13.23 + (-5.25*0) + 9.47*0 + 12.830*0 + (-0.68*0*0) + 5.33*0*0
+y1 # Média de crescimento para suplemento OJ na dose de 0.5
+```
+
+
+```{r}
+contrastes |> 
+  slice(2)
+
+
+#y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
+y2 = 13.23 + (-5.25*0) + 9.47*1 + 12.830*0 + (-0.68*0*1) + 5.33*0*0
+y2 # Média de crescimento para OJ na dose 1
+```
+
+```{r}
+contrastes |> 
+  slice(3)
+
+
+#y = 13.23 + (-5.25*suppVC) + 9.47*dose1 + 12.830*dose2 + (-0.68*suppVC:dose1) + 5.33*suppVC:dose2
+y3 = 13.23 + (-5.25*0) + 9.47*0 + 12.830*1 + (-0.68*0*0) + 5.33*0*1
+y3 # Média de crescimento para OJ na dose 2
+```
+
 
 ```{r}
 emm_dente <- emmeans(m_dente, ~ supp | dose)
