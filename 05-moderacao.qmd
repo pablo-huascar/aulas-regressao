@@ -41,7 +41,6 @@ m1 <- lm(mpg ~ wt + am, mtcars)
 summary(m1)
 ```
 
-
 ### Modelo com Interação
 
 ```{r}
@@ -61,13 +60,13 @@ coef(m2)
 ```
 
 y = a + b1X + b2W + b3XW
-y = a + b2W +X(b1 + b3W)
+y = a + b2W + X(b1 + b3W)
 
 y = a + b1X + b2W + b3XW
 y = 31.41 + (-3.78*wt) + 14.87*manual + (-5.29*wt*manual)
 
 y = a + b2W +X(b1 + b3W)
-y = 31.41 + 14.87*manual + wt(-3.78 + -5.29*manual)
+y = 31.41 + 14.87*manual + wt(-3.78 + (-5.29*manual))
 
 - Câmbio automático (0):
 
@@ -254,7 +253,7 @@ O "marginais" vem de marginalizar — ou seja, tirar o efeito do contínuo de ce
 
 ### Modelo aditivo
 
-No modelo aditivo (mpg ~ wt + am), as EMMs são simplesmente os valores preditos para cada grupo quando wt = mean(wt). A comparação entre os grupos não depende de wt porque as retas são paralelas — a diferença é constante.
+No modelo aditivo (mpg ~ wt + am), as EMMs são simplesmente os valores preditos para cada grupo quando x = mean(wt). A comparação entre os grupos não depende de wt porque as retas são paralelas — a diferença é constante.
 
 ```{r}
 summary(m1)
@@ -314,9 +313,9 @@ emmeans(
 )
 ```
 
-Comparação entre pares
+- Comparação entre pares
 
-automático e manual têm o mesmo mpg previsto nesse peso?"
+- automático e manual têm o mesmo mpg previsto nesse peso?"
 
 ```{r}
 emm <- emmeans(
@@ -517,15 +516,12 @@ cat_plot(
 )
 ```
 
-
 ## Duas variáveis contínuas
 
 - o efeito da circunferência do tronco (Girth) sobre o volume de madeira (Volume) depende da altura da árvore (Height)?
 
 
 ```{r}
-data(trees)
-
 trees_c <- trees |>
   mutate(
     Girth_c  = Girth  - mean(Girth),
@@ -542,7 +538,7 @@ summary(m_trees)
 interact_plot(m_trees,
               pred        = Girth_c,
               modx        = Height_c,
-              modx.values = "plus-minus",
+              #modx.values = "plus-minus",
               interval    = TRUE,
               x.label     = "Circunferência (centrada)",
               y.label     = "Volume de madeira",
@@ -596,3 +592,6 @@ sim_slopes(m_mt,
 ```{r}
 process(data = trees, y = "Volume", x = "Girth" , w  = "Height", jn = 1, center = 1, plot = 1)
 ```
+
+1.51725 - 5.42725 
+3.69725 - 5.89725
